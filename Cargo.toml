@@ -7,5 +7,5 @@ edition = "2024"
 dotenv = "0.15.0"
 reqwest = {version = "0.12.22", features = ["json"]}
 serde_json = "1.0.142"
-serenity_self = {version = "0.13.3", features = ["cache", "collector"]}
+serenity_self = {version = "0.13.3", features = ["collector", "cache"]}
 tokio = {version = "1.47.1", features = ["full"]}
