@@ -3,7 +3,7 @@ mod models;
 mod settings;
 mod sniper;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use handler::Handler;
 use serenity_self::{Client, all::GatewayIntents};
@@ -12,10 +12,14 @@ use sniper::Sniper;
 
 #[tokio::main]
 async fn main() {
-    let settings = Settings::load();
+    let settings = Arc::new(Settings::load());
     let mut snipers = HashMap::new();
-    for channel_id in settings.channels_ids {
-        snipers.insert(channel_id, Sniper::new(channel_id, settings.guild_id).await);
+    let channels = settings.channels_ids.clone();
+    for channel_id in channels {
+        snipers.insert(
+            channel_id,
+            Sniper::new(channel_id, settings.guild_id, Arc::clone(&settings)),
+        );
     }
     let handler = Handler { snipers };
 
