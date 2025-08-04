@@ -43,9 +43,6 @@ impl Sniper {
 
     pub async fn snipe_kakera(&self, ctx: &Context, message: &Message) -> Option<Kakera> {
         self.check_ku(ctx).await.ok()??;
-        if message.components.is_empty() {
-            return None;
-        };
 
         if message.author.id != 432610292342587392
             || message.channel_id != self.channel_id
