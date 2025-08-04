@@ -25,7 +25,24 @@ impl Sniper {
         println!("{}{}", self.guild_id, custom_id);
     }
 
-    pub async fn snipe_kakera(&self, message: &Message) -> Option<Kakera> {
+    async fn check_ku(&self, ctx: &Context) -> Result<Option<u8>, Error> {
+        let msg = CreateMessage::new().content("$ku");
+        let channel: ChannelId = self.channel_id.into();
+        channel.send_message(&ctx.http, msg).await?;
+        let mut collector = MessageCollector::new(&ctx.shard)
+            .author_id(432610292342587392.into())
+            .channel_id(channel)
+            .timeout(Duration::from_secs(10))
+            .stream();
+        if let Some(msg) = collector.next().await {
+            println!("msg: {}", msg.content);
+            return Ok(Some(1));
+        }
+        Ok(None)
+    }
+
+    pub async fn snipe_kakera(&self, ctx: &Context, message: &Message) -> Option<Kakera> {
+        self.check_ku(ctx).await.ok()??;
         if message.components.is_empty() {
             return None;
         };
