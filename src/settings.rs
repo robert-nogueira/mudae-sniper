@@ -2,6 +2,7 @@ pub struct Settings {
     pub token: String,
     pub guild_id: u64,
     pub channels_ids: Vec<u64>,
+    pub client_id: u64,
 }
 
 impl Settings {
@@ -19,6 +20,10 @@ impl Settings {
                 .split_terminator(",")
                 .filter_map(|x| x.parse::<u64>().ok())
                 .collect(),
+            client_id: dotenv::var("CLIENT_ID")
+                .expect("Missing environment variable 'CLIENT_ID'")
+                .parse()
+                .expect("Invalid environment variable 'CLIENT_ID'"),
         }
     }
 }
