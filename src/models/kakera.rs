@@ -31,15 +31,15 @@ impl Kakera {
 impl Display for Kakera {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Kakera::Blue(v) => write!(f, "Blue({})", v),
-            Kakera::Green(v) => write!(f, "Green({})", v),
-            Kakera::Light(v) => write!(f, "Light({})", v),
-            Kakera::Orange(v) => write!(f, "Orange({})", v),
-            Kakera::Purple(v) => write!(f, "Purple({})", v),
-            Kakera::Rainbow(v) => write!(f, "Rainbow({})", v),
-            Kakera::Red(v) => write!(f, "Red({})", v),
-            Kakera::Teal(v) => write!(f, "Teal({})", v),
-            Kakera::Yellow(v) => write!(f, "Yellow({})", v),
+            Kakera::Blue(v) => write!(f, "Blue({v})"),
+            Kakera::Green(v) => write!(f, "Green({v})"),
+            Kakera::Light(v) => write!(f, "Light({v})"),
+            Kakera::Orange(v) => write!(f, "Orange({v})"),
+            Kakera::Purple(v) => write!(f, "Purple({v})"),
+            Kakera::Rainbow(v) => write!(f, "Rainbow({v})"),
+            Kakera::Red(v) => write!(f, "Red({v})"),
+            Kakera::Teal(v) => write!(f, "Teal({v})"),
+            Kakera::Yellow(v) => write!(f, "Yellow({v})"),
         }
     }
 }
