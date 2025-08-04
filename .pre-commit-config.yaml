@@ -12,6 +12,7 @@ repos:
   rev: v1.0
   hooks:
     - id: cargo-check
+      args: ['--all-files']
     - id: fmt
 
 - repo: https://github.com/commitizen-tools/commitizen
