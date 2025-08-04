@@ -13,7 +13,7 @@ pub enum Kakera {
 }
 
 impl Kakera {
-    fn value(&self) -> u16 {
+    pub fn value(&self) -> u16 {
         match self {
             Kakera::Blue(v)
             | Kakera::Green(v)
