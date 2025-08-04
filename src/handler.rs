@@ -13,6 +13,10 @@ pub struct Handler {
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         if let Some(sniper) = self.snipers.get(&msg.channel_id.into()) {
+            let my_id = self.settings.client_id;
+            if msg.author.id == my_id {
+                return;
+            }
             if let Some(kakera) = sniper.snipe_kakera(&ctx, &msg).await {
                 println!("Catch: {kakera}")
             }
