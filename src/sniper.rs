@@ -28,7 +28,7 @@ impl Sniper {
         }
     }
 
-    async fn click_button(&self, custom_id: &str, message_id: u64) -> Result<(), reqwest::Error> {
+    async fn click_button(&self, custom_id: &str, message_id: u64) {
         let url = "https://discord.com/api/v10/interactions";
         let session_id = SystemTime::now() // fake session_id
             .duration_since(UNIX_EPOCH)
@@ -42,16 +42,15 @@ impl Sniper {
             "message_id": message_id.to_string(),
             "application_id": "432610292342587392",
             "session_id": session_id,
-        "data": {"component_type": 2, "custom_id": custom_id}
+            "data": {"component_type": 2, "custom_id": custom_id}
         });
-        let res = Client::new()
+        Client::new()
             .post(url)
             .header(AUTHORIZATION, self.settings.token.to_string())
             .json(&body)
             .send()
-            .await?;
-        res.error_for_status()?;
-        Ok(())
+            .await
+            .expect("HTTP Error");
     }
 
     async fn check_ku(&self, ctx: &Context) -> Result<Option<u8>, Error> {
@@ -92,7 +91,7 @@ impl Sniper {
             _ => None,
         }?;
 
-        self.click_button(custom_id, message.id.into());
+        self.click_button(custom_id, message.id.into()).await;
 
         let desc = message.embeds[0].description.clone()?;
         let (value, name) = desc.split_once(":")?;
