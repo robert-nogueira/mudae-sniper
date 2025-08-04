@@ -21,13 +21,15 @@ async fn main() {
             Sniper::new(channel_id, settings.guild_id, Arc::clone(&settings)),
         );
     }
-    let handler = Handler { snipers };
+    let handler = Handler {
+        snipers,
+        settings: Arc::clone(&settings),
+    };
 
     let mut client = Client::builder(&settings.token, GatewayIntents::all())
         .event_handler(handler)
         .await
         .expect("Err creating client");
-
     if let Err(why) = client.start().await {
         eprintln!("Err creating client: {why}");
     };

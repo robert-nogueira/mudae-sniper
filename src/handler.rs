@@ -1,14 +1,12 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
-use serenity_self::{
-    all::{Context, EventHandler, Message},
-    async_trait,
-};
+use serenity_self::all::{Context, EventHandler, Message, async_trait};
 
-use crate::sniper::Sniper;
+use crate::{settings::Settings, sniper::Sniper};
 
 pub struct Handler {
     pub snipers: HashMap<u64, Sniper>,
+    pub settings: Arc<Settings>,
 }
 
 #[async_trait]
