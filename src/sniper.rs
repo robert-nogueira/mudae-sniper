@@ -1,6 +1,12 @@
-use serenity_self::all::{ActionRowComponent, ButtonKind, Message};
+use std::time::Duration;
 
 use crate::models::kakera::Kakera;
+use serenity_self::Error;
+use serenity_self::all::{
+    ActionRowComponent, ButtonKind, ChannelId, Context, CreateMessage, Message,
+};
+use serenity_self::collector::MessageCollector;
+use serenity_self::futures::StreamExt;
 
 pub struct Sniper {
     pub guild_id: u64,
@@ -27,19 +33,30 @@ impl Sniper {
         if message.author.id != 432610292342587392
             || message.channel_id != self.channel_id
             || message.embeds.is_empty()
+            || message.embeds[0].description.is_none()
             || message.components.is_empty()
         {
             return None;
         }
 
-        let kakera_button: &ActionRowComponent = &message.components[0].components[0];
+        let button = match &message.components[0].components[0] {
+            ActionRowComponent::Button(button) => Some(button),
+            _ => None,
+        }?;
 
-        if let ActionRowComponent::Button(button) = kakera_button {
-            if let ButtonKind::NonLink { custom_id, .. } = &button.data {
-                self.click_button(custom_id);
-            }
-        };
+        let custom_id = match &button.data {
+            ButtonKind::NonLink { custom_id, .. } => Some(custom_id),
+            _ => None,
+        }?;
 
-        Some(Kakera::Blue(10))
+        self.click_button(custom_id);
+
+        let desc = message.embeds[0].description.clone()?;
+        let (value, name) = desc.split_once(":")?;
+        let value: u16 = value.parse().ok()?; // i love shadowing
+        match name {
+            "kakeraL" => Some(Kakera::Light(value)),
+            _ => None,
+        }
     }
 }
