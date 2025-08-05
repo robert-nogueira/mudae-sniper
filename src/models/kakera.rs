@@ -26,6 +26,21 @@ impl Kakera {
             | Kakera::Yellow(v) => *v,
         }
     }
+
+    pub fn from_name(name: &str, value: u16) -> Option<Kakera> {
+        match name {
+            "kakeraP" => Some(Kakera::Purple(value)),
+            "kakeraB" => Some(Kakera::Blue(value)),
+            "kakeraT" => Some(Kakera::Teal(value)),
+            "kakeraG" => Some(Kakera::Green(value)),
+            "kakeraY" => Some(Kakera::Yellow(value)),
+            "kakeraO" => Some(Kakera::Orange(value)),
+            "kakeraR" => Some(Kakera::Red(value)),
+            "kakeraW" => Some(Kakera::Rainbow(value)),
+            "kakeraL" => Some(Kakera::Light(value)),
+            _ => None,
+        }
+    }
 }
 
 impl Display for Kakera {
