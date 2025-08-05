@@ -96,9 +96,6 @@ impl Sniper {
         let desc = message.embeds[0].description.clone()?;
         let (value, name) = desc.split_once(":")?;
         let value: u16 = value.parse().ok()?; // i love shadowing
-        match name {
-            "kakeraL" => Some(Kakera::Light(value)),
-            _ => None,
-        }
+        Kakera::from_name(name, value)
     }
 }
