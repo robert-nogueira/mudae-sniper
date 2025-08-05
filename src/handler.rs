@@ -13,6 +13,9 @@ pub struct Handler {
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         if let Some(sniper) = self.snipers.get(&msg.channel_id.into()) {
+            if !sniper.running {
+                return;
+            }
             let my_id = self.settings.client_id;
             if msg.author.id == my_id {
                 return;
