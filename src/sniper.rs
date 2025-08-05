@@ -17,6 +17,7 @@ pub struct Sniper {
     pub guild_id: u64,
     pub channel_id: u64,
     pub settings: Arc<Settings>,
+    pub running: bool,
 }
 
 impl Sniper {
@@ -25,6 +26,7 @@ impl Sniper {
             channel_id,
             guild_id,
             settings,
+            running: false,
         }
     }
 
