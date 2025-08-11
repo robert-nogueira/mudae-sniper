@@ -127,3 +127,76 @@ impl EventHandler for Handler {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_status_ptbr() {
+        let text = "**allma_**, você __pode__ se casar agora mesmo! A próxima reinicialização é em **24** min.
+Você tem **10** rolls restantes.
+A próxima reinicialização é em **24** min.
+Próximo reset do $daily em **11h 31** min.
+Você __pode__ pegar kakera agora!
+Power: **100%**
+Cada reação de kakera consume 100% de seu reaction power.
+Seus Personagens com 10+ chaves consome metade do power (50%)
+Stock: **0**<:kakera:469835869059153940>
+$dk está pronto!
+Você tem **38** rolls reset no estoque";
+        let status = get_status(text);
+        assert!(status.is_some());
+    }
+
+    #[test]
+    fn test_get_status_en() {
+        let text = "**allma_**, you __can__ claim right now! The next claim reset is in **25** min.
+You have **10** rolls left. Next rolls reset in **25** min.
+Next $daily reset in **11h 32** min.
+You __can__ react to kakera right now!
+Power: **100%**
+Each kakera reaction consumes 100% of your reaction power.
+Your characters with 10+ keys consume half the power (50%)
+Stock: **0**<:kakera:469835869059153940>
+$dk is ready!
+You have **38** rolls reset in stock.";
+        let status = get_status(text);
+        assert!(status.is_some());
+    }
+
+    #[test]
+    fn test_get_status_fr() {
+        let text = "**allma_**, vous __pouvez__ vous marier dès maintenant ! Le prochain reset est dans **24** min.
+Vous avez **10** rolls restants.
+Prochain rolls reset dans **24** min.
+Prochain $daily reset dans **11h 31** min.
+Vous __pouvez__ réagir aux kakera dès maintenant !
+Power: **100%**
+Chaque réaction à un kakera consomme 100% de votre pouvoir de réaction.
+Vos personnages possédant 10+ keys consomment moitié moins de pouvoir (50%)
+Stock: **0**<:kakera:469835869059153940>
+$dk est prêt !
+Vous avez **38** rolls reset en stock.";
+        let status = get_status(text);
+        assert!(status.is_some());
+    }
+
+    #[test]
+    fn test_get_status_es() {
+        let text =
+            "**allma_**, __puedes__ reclamar ahora mismo. El siguiente reclamo será en **24** min.
+Tienes **10** rolls restantes.
+El siguiente reinicio será en **24** min.
+Siguiente reinicio de $daily en **11h 31** min.
+¡__Puedes__ reaccionar a kakera en este momento!
+Poder: **100%**
+Cada reacción de kakera consume 100% de su poder de reacción.
+Tus personajes con 10+ llaves, consumen la mitad del poder (50%)
+Capital: **0**<:kakera:469835869059153940>
+¡$dk está listo!
+Tienes **38** reinicios de rolls en el inventario.";
+        let status = get_status(text);
+        assert!(status.is_some());
+    }
+}
