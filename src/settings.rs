@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 pub struct Settings {
     pub token: String,
     pub guild_id: u64,
@@ -26,3 +28,5 @@ impl Settings {
         }
     }
 }
+
+pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| Settings::load());
