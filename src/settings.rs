@@ -8,7 +8,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn load() -> Settings {
+    fn load() -> Settings {
         Settings {
             token: dotenv::var("CLIENT_TOKEN")
                 .expect("Missing environment variable 'CLIENT_TOKEN'"),
