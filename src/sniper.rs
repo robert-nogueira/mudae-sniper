@@ -35,13 +35,13 @@ impl Sniper {
             .as_millis()
             .to_string();
         let body = json!({
-            "type" : 3,
-            "guild_id": self.guild_id.to_string(),
-            "channel_id": self.channel_id.to_string(),
-            "message_id": message_id.to_string(),
-            "application_id": "432610292342587392",
-            "session_id": session_id,
-            "data": {"component_type": 2, "custom_id": custom_id}
+                "type" : 3,
+                "guild_id": self.guild_id.to_string(),
+                "channel_id": self.channel_id.to_string(),
+                "message_id": message_id.to_string(),
+                "application_id": "432610292342587392",
+                "session_id": session_id,
+                "data": {"component_type": 2, "custom_id": custom_id}
         });
         Client::new()
             .post(url)
