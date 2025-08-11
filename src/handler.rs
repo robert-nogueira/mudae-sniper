@@ -1,12 +1,11 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use serenity_self::all::{Context, EventHandler, Message, async_trait};
 
-use crate::{settings::Settings, sniper::Sniper};
+use crate::{settings::SETTINGS, sniper::Sniper};
 
 pub struct Handler {
     pub snipers: HashMap<u64, Sniper>,
-    pub settings: Arc<Settings>,
 }
 
 #[async_trait]
@@ -16,7 +15,7 @@ impl EventHandler for Handler {
             if !sniper.running {
                 return;
             }
-            let my_id = self.settings.client_id;
+            let my_id = SETTINGS.client_id;
             if msg.author.id == my_id {
                 return;
             }

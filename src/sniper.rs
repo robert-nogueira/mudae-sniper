@@ -1,8 +1,7 @@
-use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::models::kakera::Kakera;
-use crate::settings::Settings;
+use crate::settings::SETTINGS;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
@@ -16,16 +15,14 @@ use serenity_self::futures::StreamExt;
 pub struct Sniper {
     pub guild_id: u64,
     pub channel_id: u64,
-    pub settings: Arc<Settings>,
     pub running: bool,
 }
 
 impl Sniper {
-    pub fn new(channel_id: u64, guild_id: u64, settings: Arc<Settings>) -> Sniper {
+    pub fn new(channel_id: u64, guild_id: u64) -> Sniper {
         Sniper {
             channel_id,
             guild_id,
-            settings,
             running: false,
         }
     }
@@ -48,7 +45,7 @@ impl Sniper {
         });
         Client::new()
             .post(url)
-            .header(AUTHORIZATION, self.settings.token.to_string())
+            .header(AUTHORIZATION, SETTINGS.token.to_string())
             .json(&body)
             .send()
             .await

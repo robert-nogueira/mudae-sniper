@@ -3,30 +3,23 @@ mod models;
 mod settings;
 mod sniper;
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use handler::Handler;
 use serenity_self::{Client, all::GatewayIntents};
-use settings::Settings;
+use settings::SETTINGS;
 use sniper::Sniper;
 
 #[tokio::main]
 async fn main() {
-    let settings = Arc::new(Settings::load());
     let mut snipers = HashMap::new();
-    let channels = settings.channels_ids.clone();
+    let channels = SETTINGS.channels_ids.clone();
     for channel_id in channels {
-        snipers.insert(
-            channel_id,
-            Sniper::new(channel_id, settings.guild_id, Arc::clone(&settings)),
-        );
+        snipers.insert(channel_id, Sniper::new(channel_id, SETTINGS.guild_id));
     }
-    let handler = Handler {
-        snipers,
-        settings: Arc::clone(&settings),
-    };
+    let handler = Handler { snipers };
 
-    let mut client = Client::builder(&settings.token, GatewayIntents::all())
+    let mut client = Client::builder(SETTINGS.token.clone(), GatewayIntents::all())
         .event_handler(handler)
         .await
         .expect("Err creating client");
