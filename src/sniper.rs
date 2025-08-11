@@ -15,7 +15,7 @@ use serenity_self::all::{
 use serenity_self::collector::MessageCollector;
 use serenity_self::futures::StreamExt;
 
-struct Status {
+struct Statistics {
     claim_time: DateTime<Utc>,
     rolls_remaining: u8,
     next_rolls: DateTime<Utc>,
@@ -34,7 +34,6 @@ pub struct Sniper {
     pub guild_id: u64,
     pub channel_id: u64,
     pub running: bool,
-    pub status: Option<Status>,
 }
 
 impl Sniper {
@@ -43,11 +42,10 @@ impl Sniper {
             channel_id,
             guild_id,
             running: false,
-            status: None,
         }
     }
 
-    fn extract_status(text: &str) -> Option<Status> {
+    fn extract_statistics(text: &str) -> Option<Statistics> {
         fn parse_num<T: FromStr>(s: &str) -> Option<T> {
             s.parse::<T>().ok()
         }
@@ -111,7 +109,7 @@ impl Sniper {
             parse_duration_from_line(9, &lines, &mut values_str).unwrap_or(Utc::now());
         let rolls_reset_stock = parse_num::<u16>(values_str[10])?;
 
-        let status = Status {
+        let status = Statistics {
             claim_time,
             rolls_remaining,
             next_rolls,
@@ -217,7 +215,7 @@ Seus Personagens com 10+ chaves consome metade do power (50%)
 Stock: **0**<:kakera:469835869059153940>
 $dk está pronto!
 Você tem **38** rolls reset no estoque";
-        let status = Sniper::extract_status(text);
+        let status = Sniper::extract_statistics(text);
         assert!(status.is_some());
     }
 
@@ -233,7 +231,7 @@ Your characters with 10+ keys consume half the power (50%)
 Stock: **0**<:kakera:469835869059153940>
 $dk is ready!
 You have **38** rolls reset in stock.";
-        let status = Sniper::extract_status(text);
+        let status = Sniper::extract_statistics(text);
         assert!(status.is_some());
     }
 
@@ -250,7 +248,7 @@ Vos personnages possédant 10+ keys consomment moitié moins de pouvoir (50%)
 Stock: **0**<:kakera:469835869059153940>
 $dk est prêt !
 Vous avez **38** rolls reset en stock.";
-        let status = Sniper::extract_status(text);
+        let status = Sniper::extract_statistics(text);
         assert!(status.is_some());
     }
 
@@ -268,7 +266,7 @@ Tus personajes con 10+ llaves, consumen la mitad del poder (50%)
 Capital: **0**<:kakera:469835869059153940>
 ¡$dk está listo!
 Tienes **38** reinicios de rolls en el inventario.";
-        let status = Sniper::extract_status(text);
+        let status = Sniper::extract_statistics(text);
         assert!(status.is_some());
     }
 }
