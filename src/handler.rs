@@ -1,12 +1,8 @@
-use std::collections::HashMap;
-
 use serenity_self::all::{Context, EventHandler, Message, async_trait};
 
-use crate::{settings::SETTINGS, snipers::Sniper};
+use crate::{settings::SETTINGS, snipers::SNIPERS};
 
-pub struct Handler {
-    pub snipers: HashMap<u64, Sniper>,
-}
+pub struct Handler {}
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -14,7 +10,9 @@ impl EventHandler for Handler {
         if msg.guild_id.is_none() && msg.content != "!start" {
             // setup();
         }
-        if let Some(sniper) = self.snipers.get(&msg.channel_id.into()) {
+        if let Some(sniper) = SNIPERS.get(&msg.channel_id.into()) {
+            let sniper = sniper.lock().await;
+
             if !sniper.running {
                 return;
             }
