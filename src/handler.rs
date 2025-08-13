@@ -53,5 +53,10 @@ impl EventHandler for Handler {
         if !SETTINGS.channels_ids.contains(&channel_id) || msg.author.id != 432610292342587392 {
             return;
         }
+
+        if let Some(sniper) = SNIPERS.get(&channel_id) {
+            let sniper = sniper.lock().await;
+            sniper.snipe_kakera(&ctx, &msg).await;
+        }
     }
 }
