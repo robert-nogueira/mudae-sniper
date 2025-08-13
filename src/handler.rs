@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serenity_self::all::{Context, EventHandler, Message, async_trait};
 
-use crate::{settings::SETTINGS, sniper::Sniper};
+use crate::{settings::SETTINGS, snipers::Sniper};
 
 pub struct Handler {
     pub snipers: HashMap<u64, Sniper>,
