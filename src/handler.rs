@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use serenity_self::{
-    all::{Context, EventHandler, Http, Message, async_trait},
-    http,
-};
+use serenity_self::all::{Context, EventHandler, Http, Message, async_trait};
 use tokio::sync::Mutex;
 
 use crate::{
