@@ -50,7 +50,7 @@ impl EventHandler for Handler {
             setup_snipers(&ctx).await;
         };
         let channel_id: u64 = msg.channel_id.into();
-        if !SETTINGS.channels_ids.contains(&channel_id) {
+        if !SETTINGS.channels_ids.contains(&channel_id) || msg.author.id != 432610292342587392 {
             return;
         }
     }
