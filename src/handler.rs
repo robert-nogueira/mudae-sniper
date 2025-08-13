@@ -24,7 +24,7 @@ async fn setup_snipers(ctx: &Context) {
         )));
         SNIPERS.insert(channel_id, Arc::clone(&sniper));
         let mut sniper = sniper.lock().await;
-        let command = sniper.channel_id.say(&sniper.http, "$tu").await.unwrap();
+        sniper.channel_id.say(&sniper.http, "$tu").await.unwrap();
         let mut collector = MessageCollector::new(&ctx.shard)
             .channel_id(sniper.channel_id)
             .author_id(432610292342587392.into())
@@ -32,12 +32,9 @@ async fn setup_snipers(ctx: &Context) {
             .stream();
         if let Some(msg) = collector.next().await {
             if sniper.update_statistics(&msg.content).is_err() {
-                command.react(&sniper.http, '❌').await.unwrap();
+                msg.react(&sniper.http, '❌').await.unwrap();
             };
-        } else {
-            command.react(&sniper.http, '❌').await.unwrap();
         }
-        command.delete(&sniper.http).await.unwrap();
     }
 }
 
@@ -45,6 +42,7 @@ async fn setup_snipers(ctx: &Context) {
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.author.id == SETTINGS.client_id && msg.content.as_str() == "!start" {
+            msg.delete(&ctx.http).await.unwrap();
             setup_snipers(&ctx).await;
         };
     }
