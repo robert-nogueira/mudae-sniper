@@ -11,7 +11,7 @@ use reqwest::header::AUTHORIZATION;
 use serde_json::json;
 use serenity_self::Error;
 use serenity_self::all::{
-    ActionRowComponent, ButtonKind, ChannelId, Context, CreateMessage, Http, Message,
+    ActionRowComponent, ButtonKind, ChannelId, Context, CreateMessage, GuildId, Http, Message,
 };
 use serenity_self::collector::MessageCollector;
 use serenity_self::futures::StreamExt;
@@ -19,15 +19,15 @@ use serenity_self::futures::StreamExt;
 use super::{ExtractStatisticsError, Statistics};
 
 pub struct Sniper {
-    pub guild_id: u64,
-    pub channel_id: u64,
+    pub guild_id: GuildId,
+    pub channel_id: ChannelId,
     pub running: bool,
     pub http: Arc<Http>,
     pub statistics: Option<Statistics>,
 }
 
 impl Sniper {
-    pub fn new(channel_id: u64, guild_id: u64, http: Arc<Http>) -> Sniper {
+    pub fn new(channel_id: ChannelId, guild_id: GuildId, http: Arc<Http>) -> Sniper {
         Sniper {
             channel_id,
             guild_id,
