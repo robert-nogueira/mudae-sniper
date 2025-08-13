@@ -48,7 +48,9 @@ impl Sniper {
 
     fn extract_statistics(text: &str) -> Option<Statistics> {
         fn parse_num<T: FromStr>(s: &str) -> Option<T> {
-            s.parse::<T>().ok()
+            let t = "Stock: **0**<:kakera:469835869059153940>";
+            let s_clean = s.replace(".", "").replace(",", "");
+            s_clean.parse::<T>().ok()
         }
 
         fn parse_duration_from_line(
@@ -56,7 +58,7 @@ impl Sniper {
             lines: &[&str],
             values_str: &mut Vec<&str>,
         ) -> Option<DateTime<Utc>> {
-            let regex_get_number = Regex::new(r"\d{1,3}(?:[.,]\d{3})*").unwrap();
+            let regex_get_number = Regex::new(r"\d+(?:[.,]\d{3})*").unwrap();
             let line = lines.get(line_index)?;
             let count = regex_get_number.find_iter(line).count();
             if count == 2 {
@@ -73,7 +75,7 @@ impl Sniper {
             }
         }
 
-        let regex_get_number = Regex::new(r"\d{1,3}(?:[.,]\d{3})*").unwrap();
+        let regex_get_number = Regex::new(r"\d+(?:[.,]\d{3})*").unwrap();
         let mut values_str: Vec<&str> = regex_get_number
             .find_iter(text)
             .map(|m| m.as_str())
@@ -100,14 +102,16 @@ impl Sniper {
         let kakera_cost: u8 = parse_num::<u8>(values_str[6])?;
         let kakera_cost_half: u8 = kakera_cost / 2; // skip line 7
         let kakera_stock: u32 = parse_num::<u32>(values_str[8])?;
-        let next_rt: Option<DateTime<Utc>> = if values_str.remove(9).contains("$rt") {
-            Some(parse_duration_from_line(9, &lines, &mut values_str)?)
+        let next_rt: Option<DateTime<Utc>> = if lines[9].contains("$rt") {
+            parse_duration_from_line(9, &lines, &mut values_str)
         } else {
             None
         };
-
-        let next_dk: DateTime<Utc> =
-            parse_duration_from_line(9, &lines, &mut values_str).unwrap_or(Utc::now());
+        let next_dk: DateTime<Utc> = if lines[10].contains("$dk") {
+            parse_duration_from_line(9, &lines, &mut values_str).unwrap_or(Utc::now())
+        } else {
+            Utc::now()
+        };
         let rolls_reset_stock = parse_num::<u16>(values_str[10])?;
 
         let status = Statistics {
@@ -211,7 +215,8 @@ Você __pode__ pegar kakera agora!
 Power: **100%**
 Cada reação de kakera consume 100% de seu reaction power.
 Seus Personagens com 10+ chaves consome metade do power (50%)
-Stock: **0**<:kakera:469835869059153940>
+Stock: **2**:kakera:469>
+$rt está pronto!
 $dk está pronto!
 Você tem **38** rolls reset no estoque";
         let status = Sniper::extract_statistics(text);
