@@ -15,8 +15,8 @@ fn setup_snipers(http: Arc<Http>) {
     let mut sniper: Arc<Mutex<Sniper>>;
     for channel_id in channels {
         sniper = Arc::new(Mutex::new(Sniper::new(
-            channel_id,
-            SETTINGS.guild_id,
+            channel_id.into(),
+            SETTINGS.guild_id.into(),
             Arc::clone(&http),
         )));
         SNIPERS.insert(channel_id, Arc::clone(&sniper));
