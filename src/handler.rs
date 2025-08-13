@@ -25,7 +25,7 @@ async fn setup_snipers(ctx: &Context) {
         SNIPERS.insert(channel_id, Arc::clone(&sniper));
         let mut sniper = sniper.lock().await;
         let command = sniper.channel_id.say(&sniper.http, "$tu").await.unwrap();
-        let mut collector = MessageCollector::new(&ctx.shard)
+        let mut collector = MessageCollector::new(ctx)
             .channel_id(sniper.channel_id)
             .author_id(432610292342587392.into())
             .timeout(Duration::from_secs(30))
