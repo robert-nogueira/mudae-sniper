@@ -56,7 +56,7 @@ impl EventHandler for Handler {
 
         if let Some(sniper) = SNIPERS.get(&channel_id) {
             let sniper = sniper.lock().await;
-            sniper.snipe_kakera(&ctx, &msg).await;
+            sniper.snipe_kakeras(&msg).await;
         }
     }
 }
