@@ -24,13 +24,15 @@ async fn setup_snipers(ctx: &Context) {
         )));
         SNIPERS.insert(channel_id, Arc::clone(&sniper));
         let mut sniper = sniper.lock().await;
-        sniper.channel_id.say(&sniper.http, "$tu").await.unwrap();
+        let command = sniper.channel_id.say(&sniper.http, "$tu").await.unwrap();
         let mut collector = MessageCollector::new(&ctx.shard)
             .channel_id(sniper.channel_id)
             .author_id(432610292342587392.into())
             .timeout(Duration::from_secs(30))
+            .filter(move |m: &Message| m.content.contains(&command.author.name))
             .stream();
         if let Some(msg) = collector.next().await {
+            println!("{}", msg.content);
             if sniper.update_statistics(&msg.content).is_err() {
                 msg.react(&sniper.http, '❌').await.unwrap();
             };
