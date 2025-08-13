@@ -1,9 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use serenity_self::{
-    all::{
-        CacheHttp, ChannelId, Context, EventHandler, Http, Message, MessageCollector, async_trait,
-    },
+    all::{Context, EventHandler, Message, MessageCollector, async_trait},
     futures::StreamExt,
 };
 use tokio::sync::Mutex;
@@ -49,20 +47,5 @@ impl EventHandler for Handler {
         if msg.author.id == SETTINGS.client_id && msg.content.as_str() == "!start" {
             setup_snipers(&ctx).await;
         };
-        if let Some(sniper) = SNIPERS.get(&msg.channel_id.into()) {
-            let sniper = sniper.lock().await;
-
-            if !sniper.running {
-                return;
-            }
-
-            let my_id = SETTINGS.client_id;
-            if msg.author.id == my_id {
-                return;
-            }
-            if let Some(kakera) = sniper.snipe_kakera(&ctx, &msg).await {
-                println!("Catch: {kakera}")
-            }
-        }
     }
 }
