@@ -1,12 +1,10 @@
-use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 use std::time::{Duration as TimeDuration, SystemTime, UNIX_EPOCH};
 
 use crate::models::kakera::Kakera;
 use crate::settings::SETTINGS;
 use chrono::{DateTime, Duration, Utc};
-use dashmap::DashMap;
 use regex::Regex;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
@@ -17,24 +15,8 @@ use serenity_self::all::{
 };
 use serenity_self::collector::MessageCollector;
 use serenity_self::futures::StreamExt;
-use tokio::sync::Mutex;
 
-struct Statistics {
-    claim_time: DateTime<Utc>,
-    rolls_remaining: u8,
-    next_rolls: DateTime<Utc>,
-    next_daily: DateTime<Utc>,
-    next_kakera_react: DateTime<Utc>,
-    kakera_power: u8,
-    kakera_cost: u8,
-    kakera_cost_half: u8,
-    kakera_stock: u32,
-    next_rt: Option<DateTime<Utc>>,
-    next_dk: DateTime<Utc>,
-    rolls_reset_stock: u16,
-}
-
-pub struct ExtractStatisticsError;
+use super::{ExtractStatisticsError, Statistics};
 
 pub struct Sniper {
     pub guild_id: u64,
@@ -144,13 +126,13 @@ impl Sniper {
             .as_millis()
             .to_string();
         let body = json!({
-                "type" : 3,
-                "guild_id": self.guild_id.to_string(),
-                "channel_id": self.channel_id.to_string(),
-                "message_id": message_id.to_string(),
-                "application_id": "432610292342587392",
-                "session_id": session_id,
-                "data": {"component_type": 2, "custom_id": custom_id}
+            "type" : 3,
+            "guild_id": self.guild_id.to_string(),
+            "channel_id": self.channel_id.to_string(),
+            "message_id": message_id.to_string(),
+            "application_id": "432610292342587392",
+            "session_id": session_id,
+            "data": {"component_type": 2, "custom_id": custom_id}
         });
         Client::new()
             .post(url)
@@ -213,8 +195,6 @@ impl Sniper {
         Kakera::from_name(name, value)
     }
 }
-
-pub static SNIPERS: LazyLock<DashMap<u64, Arc<Mutex<Sniper>>>> = LazyLock::new(DashMap::new);
 
 #[cfg(test)]
 mod tests {
