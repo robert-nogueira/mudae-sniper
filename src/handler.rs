@@ -47,5 +47,9 @@ impl EventHandler for Handler {
             msg.delete(&ctx.http).await.unwrap();
             setup_snipers(&ctx).await;
         };
+        let channel_id: u64 = msg.channel_id.into();
+        if !SETTINGS.channels_ids.contains(&channel_id) {
+            return;
+        }
     }
 }
