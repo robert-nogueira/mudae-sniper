@@ -48,6 +48,8 @@ impl Sniper {
 
     fn extract_statistics(text: &str) -> Option<Statistics> {
         fn parse_num<T: FromStr>(s: &str) -> Option<T> {
+            let mut s = s.replace(".", "");
+            s = s.replace(",", "");
             s.parse::<T>().ok()
         }
 
@@ -205,18 +207,18 @@ mod tests {
 
     #[test]
     fn test_get_status_ptbr() {
-        let text = "**allma_**, você __pode__ se casar agora mesmo! A próxima reinicialização é em **24** min.
-Você tem **10** rolls restantes.
-A próxima reinicialização é em **24** min.
-Próximo reset do $daily em **11h 31** min.
+        let text = "**allma_**, Calma aí, falta um tempo antes que você possa se casar novamente **1h 09** min.
+Você tem **17** rolls restantes.
+A próxima reinicialização é em **39** min.
+Próximo reset do $daily em **19h 54** min.
 Você __pode__ pegar kakera agora!
 Power: **100%**
-Cada reação de kakera consume 100% de seu reaction power.
-Seus Personagens com 10+ chaves consome metade do power (50%)
-Stock: **2**:kakera:469>
+Cada reação de kakera consume 70% de seu reaction power.
+Seus Personagens com 10+ chaves consome metade do power (35%)
+Stock: **9.040**<:kakera:469835869059153940>
 $rt está pronto!
 $dk está pronto!
-Você tem **38** rolls reset no estoque";
+Você tem **37** rolls reset no estoque";
         let status = Sniper::extract_statistics(text);
         assert!(status.is_some());
     }
@@ -265,7 +267,7 @@ Siguiente reinicio de $daily en **11h 31** min.
 Poder: **100%**
 Cada reacción de kakera consume 100% de su poder de reacción.
 Tus personajes con 10+ llaves, consumen la mitad del poder (50%)
-Capital: **0**<:kakera:469835869059153940>
+Capital: **256,838**<:kakera:469835869059153940>
 ¡$dk está listo!
 Tienes **38** reinicios de rolls en el inventario.";
         let status = Sniper::extract_statistics(text);
