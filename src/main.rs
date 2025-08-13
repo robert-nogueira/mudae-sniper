@@ -1,14 +1,14 @@
 mod handler;
 mod models;
 mod settings;
-mod sniper;
+mod snipers;
 
 use std::collections::HashMap;
 
 use handler::Handler;
 use serenity_self::{Client, all::GatewayIntents};
 use settings::SETTINGS;
-use sniper::Sniper;
+use snipers::Sniper;
 
 #[tokio::main]
 async fn main() {
