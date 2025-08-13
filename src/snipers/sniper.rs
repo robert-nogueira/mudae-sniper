@@ -48,9 +48,7 @@ impl Sniper {
 
     fn extract_statistics(text: &str) -> Option<Statistics> {
         fn parse_num<T: FromStr>(s: &str) -> Option<T> {
-            let t = "Stock: **0**<:kakera:469835869059153940>";
-            let s_clean = s.replace(".", "").replace(",", "");
-            s_clean.parse::<T>().ok()
+            s.parse::<T>().ok()
         }
 
         fn parse_duration_from_line(
