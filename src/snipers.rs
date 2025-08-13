@@ -34,11 +34,14 @@ struct Statistics {
     rolls_reset_stock: u16,
 }
 
+pub struct ExtractStatisticsError;
+
 pub struct Sniper {
     pub guild_id: u64,
     pub channel_id: u64,
     pub running: bool,
     pub http: Arc<Http>,
+    pub statistics: Option<Statistics>,
 }
 
 impl Sniper {
@@ -48,6 +51,7 @@ impl Sniper {
             guild_id,
             running: true,
             http,
+            statistics: None,
         }
     }
 
@@ -155,6 +159,12 @@ impl Sniper {
             .send()
             .await
             .expect("HTTP Error");
+    }
+
+    pub fn update_statistics(&mut self, text: &str) -> Result<(), ExtractStatisticsError> {
+        let statistic = Sniper::extract_statistics(text).ok_or(ExtractStatisticsError)?;
+        self.statistics = Some(statistic);
+        Ok(())
     }
 
     async fn check_ku(&self, ctx: &Context) -> Result<Option<u8>, Error> {
