@@ -143,7 +143,7 @@ impl Sniper {
             .expect("HTTP Error");
     }
 
-    pub fn update_statistics(&mut self, text: &str) -> Result<(), ExtractStatisticsError> {
+    fn update_statistics(&mut self, text: &str) -> Result<(), ExtractStatisticsError> {
         let statistic = Sniper::extract_statistics(text).ok_or(ExtractStatisticsError)?;
         self.statistics = Some(statistic);
         Ok(())
