@@ -151,11 +151,10 @@ impl Sniper {
 
     async fn check_ku(&self, ctx: &Context) -> Result<Option<u8>, Error> {
         let msg = CreateMessage::new().content("$ku");
-        let channel: ChannelId = self.channel_id.into();
-        channel.send_message(&ctx.http, msg).await?;
+        self.channel_id.send_message(&ctx.http, msg).await?;
         let mut collector = MessageCollector::new(&ctx.shard)
             .author_id(432610292342587392.into())
-            .channel_id(channel)
+            .channel_id(self.channel_id)
             .timeout(TimeDuration::from_secs(10))
             .stream();
         if let Some(msg) = collector.next().await {
