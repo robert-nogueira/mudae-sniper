@@ -46,7 +46,7 @@ impl Sniper {
         Sniper {
             channel_id,
             guild_id,
-            running: false,
+            running: true,
             http,
         }
     }
