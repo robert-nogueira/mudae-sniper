@@ -201,8 +201,7 @@ impl Sniper {
     }
 }
 
-pub static SNIPERS: LazyLock<Arc<Mutex<HashMap<u64, Sniper>>>> =
-    LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
+pub static SNIPERS: LazyLock<HashMap<u64, Arc<Mutex<Sniper>>>> = LazyLock::new(|| HashMap::new());
 
 #[cfg(test)]
 mod tests {
