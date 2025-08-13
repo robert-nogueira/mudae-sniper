@@ -149,24 +149,7 @@ impl Sniper {
         Ok(())
     }
 
-    async fn check_ku(&self, ctx: &Context) -> Result<Option<u8>, Error> {
-        let msg = CreateMessage::new().content("$ku");
-        self.channel_id.send_message(&ctx.http, msg).await?;
-        let mut collector = MessageCollector::new(&ctx.shard)
-            .author_id(432610292342587392.into())
-            .channel_id(self.channel_id)
-            .timeout(TimeDuration::from_secs(10))
-            .stream();
-        if let Some(msg) = collector.next().await {
-            println!("msg: {}", msg.content);
-            return Ok(Some(1));
-        }
-        Ok(None)
-    }
-
     pub async fn snipe_kakera(&self, ctx: &Context, message: &Message) -> Option<Kakera> {
-        self.check_ku(ctx).await.ok()??;
-
         if message.author.id != 432610292342587392
             || message.channel_id != self.channel_id
             || message.embeds.is_empty()
