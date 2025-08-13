@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::{Arc, LazyLock};
 use std::time::{Duration as TimeDuration, SystemTime, UNIX_EPOCH};
 
 use crate::models::kakera::Kakera;
@@ -14,6 +16,7 @@ use serenity_self::all::{
 };
 use serenity_self::collector::MessageCollector;
 use serenity_self::futures::StreamExt;
+use tokio::sync::Mutex;
 
 struct Statistics {
     claim_time: DateTime<Utc>,
@@ -197,6 +200,9 @@ impl Sniper {
         Kakera::from_name(name, value)
     }
 }
+
+static SNIPERS: LazyLock<Arc<Mutex<HashMap<u64, Sniper>>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
 
 #[cfg(test)]
 mod tests {
