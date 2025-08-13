@@ -32,8 +32,11 @@ async fn setup_snipers(ctx: &Context) {
             .filter(move |m: &Message| m.content.contains(&command.author.name))
             .stream();
         if let Some(msg) = collector.next().await {
-            if sniper.update_statistics(&msg.content).is_err() {
-                msg.react(&sniper.http, '❌').await.unwrap();
+            match sniper.update_statistics(&msg.content) {
+                Ok(_) => sniper.running = true,
+                Err(_) => {
+                    msg.react(&sniper.http, '❌').await.unwrap();
+                }
             };
         }
     }
