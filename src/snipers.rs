@@ -6,13 +6,14 @@ use std::time::{Duration as TimeDuration, SystemTime, UNIX_EPOCH};
 use crate::models::kakera::Kakera;
 use crate::settings::SETTINGS;
 use chrono::{DateTime, Duration, Utc};
+use dashmap::DashMap;
 use regex::Regex;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
 use serenity_self::Error;
 use serenity_self::all::{
-    ActionRowComponent, ButtonKind, ChannelId, Context, CreateMessage, Message,
+    ActionRowComponent, ButtonKind, ChannelId, Context, CreateMessage, Http, Message,
 };
 use serenity_self::collector::MessageCollector;
 use serenity_self::futures::StreamExt;
@@ -37,14 +38,16 @@ pub struct Sniper {
     pub guild_id: u64,
     pub channel_id: u64,
     pub running: bool,
+    pub http: Arc<Http>,
 }
 
 impl Sniper {
-    pub fn new(channel_id: u64, guild_id: u64) -> Sniper {
+    pub fn new(channel_id: u64, guild_id: u64, http: Arc<Http>) -> Sniper {
         Sniper {
             channel_id,
             guild_id,
             running: false,
+            http,
         }
     }
 
@@ -201,7 +204,7 @@ impl Sniper {
     }
 }
 
-pub static SNIPERS: LazyLock<HashMap<u64, Arc<Mutex<Sniper>>>> = LazyLock::new(|| HashMap::new());
+pub static SNIPERS: LazyLock<DashMap<u64, Arc<Mutex<Sniper>>>> = LazyLock::new(DashMap::new);
 
 #[cfg(test)]
 mod tests {
