@@ -1,20 +1,15 @@
 use std::str::FromStr;
 use std::sync::Arc;
-use std::time::{Duration as TimeDuration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::models::kakera::{self, Kakera};
+use crate::models::kakera::Kakera;
 use crate::settings::SETTINGS;
 use chrono::{DateTime, Duration, Utc};
 use regex::Regex;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
-use serenity_self::Error;
-use serenity_self::all::{
-    ActionRowComponent, ButtonKind, ChannelId, Context, CreateMessage, GuildId, Http, Message,
-};
-use serenity_self::collector::MessageCollector;
-use serenity_self::futures::StreamExt;
+use serenity_self::all::{ActionRowComponent, ButtonKind, ChannelId, GuildId, Http, Message};
 
 use super::{ExtractStatisticsError, Statistics};
 
@@ -164,6 +159,7 @@ impl Sniper {
 
     pub async fn snipe_kakeras(&self, message: &Message) -> Vec<Kakera> {
         let mut kakeras_sniped: Vec<Kakera> = vec![];
+
         if message.author.id != 432610292342587392
             || message.channel_id != self.channel_id
             || message.embeds.is_empty()
@@ -176,9 +172,7 @@ impl Sniper {
         if message.components[0].components.is_empty() {
             return kakeras_sniped;
         }
-        if message.embeds.is_empty() {
-            return kakeras_sniped;
-        }
+
         for component in &message.components[0].components {
             let button = some_or_continue!(match component {
                 ActionRowComponent::Button(button) => Some(button),
@@ -190,11 +184,17 @@ impl Sniper {
                 _ => None,
             });
 
+            let button_emoji_id = match button.emoji.clone().unwrap() {
+                serenity_self::all::ReactionType::Custom { id, .. } => id,
+                _ => continue,
+            };
             self.click_button(custom_id, message.id.into()).await;
+
             let desc = some_or_continue!(message.embeds[0].description.clone());
-            let (value, name) = some_or_continue!(desc.split_once(":"));
+            let value = some_or_continue!(desc.split("\n").last());
             let value: u16 = some_or_continue!(value.parse().ok());
-            let kakera = some_or_continue!(Kakera::from_name(name, value));
+            let kakera = some_or_continue!(Kakera::from_emoji_id(button_emoji_id.into(), value));
+
             kakeras_sniped.push(kakera);
         }
         kakeras_sniped

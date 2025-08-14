@@ -27,17 +27,17 @@ impl Kakera {
         }
     }
 
-    pub fn from_name(name: &str, value: u16) -> Option<Kakera> {
-        match name {
-            "kakeraP" => Some(Kakera::Purple(value)),
-            "kakeraB" => Some(Kakera::Blue(value)),
-            "kakeraT" => Some(Kakera::Teal(value)),
-            "kakeraG" => Some(Kakera::Green(value)),
-            "kakeraY" => Some(Kakera::Yellow(value)),
-            "kakeraO" => Some(Kakera::Orange(value)),
-            "kakeraR" => Some(Kakera::Red(value)),
-            "kakeraW" => Some(Kakera::Rainbow(value)),
-            "kakeraL" => Some(Kakera::Light(value)),
+    pub fn from_emoji_id(id: u64, value: u16) -> Option<Kakera> {
+        match id {
+            1097914822462545951 => Some(Kakera::Purple(value)),
+            1097914834244337784 => Some(Kakera::Blue(value)),
+            1097914851772342322 => Some(Kakera::Teal(value)),
+            1097914861419245639 => Some(Kakera::Green(value)),
+            1097914885343543407 => Some(Kakera::Yellow(value)),
+            1097914894558433451 => Some(Kakera::Orange(value)),
+            1097914903915925716 => Some(Kakera::Red(value)),
+            608192076286263297 => Some(Kakera::Rainbow(value)),
+            1097914945699581973 => Some(Kakera::Light(value)),
             _ => None,
         }
     }
