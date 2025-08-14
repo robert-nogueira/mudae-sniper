@@ -1,18 +1,14 @@
-use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::models::kakera::Kakera;
 use crate::settings::SETTINGS;
-use crate::utils::extract_statistics;
-use chrono::{DateTime, Duration, Utc};
-use regex::Regex;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
 use serenity_self::all::{ActionRowComponent, ButtonKind, ChannelId, GuildId, Http, Message};
 
-use super::{ExtractStatisticsError, Statistics};
+use super::Statistics;
 
 macro_rules! some_or_continue {
     ($expr:expr) => {
@@ -28,17 +24,22 @@ pub struct Sniper {
     pub channel_id: ChannelId,
     pub running: bool,
     pub http: Arc<Http>,
-    pub statistics: Option<Statistics>,
+    pub statistics: Statistics,
 }
 
 impl Sniper {
-    pub fn new(channel_id: ChannelId, guild_id: GuildId, http: Arc<Http>) -> Sniper {
+    pub fn new(
+        channel_id: ChannelId,
+        guild_id: GuildId,
+        http: Arc<Http>,
+        statistics: Statistics,
+    ) -> Sniper {
         Sniper {
             channel_id,
             guild_id,
             running: true,
             http,
-            statistics: None,
+            statistics,
         }
     }
 
@@ -113,7 +114,7 @@ impl Sniper {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::utils::extract_statistics;
 
     #[test]
     fn test_get_status_ptbr() {
