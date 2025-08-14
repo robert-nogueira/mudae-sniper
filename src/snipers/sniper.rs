@@ -68,7 +68,7 @@ impl Sniper {
             .expect("HTTP Error");
     }
 
-    pub async fn snipe_kakeras(&self, message: &Message) -> Vec<Kakera> {
+    pub async fn snipe_kakeras(&mut self, message: &Message) -> Vec<Kakera> {
         let mut kakeras_sniped: Vec<Kakera> = vec![];
 
         if message.author.id != 432610292342587392
@@ -85,6 +85,9 @@ impl Sniper {
         }
 
         for component in &message.components[0].components {
+            if self.statistics.kakera_power < self.statistics.kakera_cost {
+                continue;
+            }
             let button = some_or_continue!(match component {
                 ActionRowComponent::Button(button) => Some(button),
                 _ => None,
@@ -105,7 +108,8 @@ impl Sniper {
             let value = some_or_continue!(desc.split("\n").last());
             let value: u16 = some_or_continue!(value.parse().ok());
             let kakera = some_or_continue!(Kakera::from_emoji_id(button_emoji_id.into(), value));
-
+            self.statistics.kakera_power -= self.statistics.kakera_cost;
+            self.statistics.kakera_stock += value as u32;
             kakeras_sniped.push(kakera);
         }
         kakeras_sniped
