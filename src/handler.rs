@@ -9,6 +9,7 @@ use tokio::sync::Mutex;
 use crate::{
     settings::SETTINGS,
     snipers::{SNIPERS, Sniper},
+    utils::extract_statistics,
 };
 
 pub struct Handler {}
@@ -32,9 +33,10 @@ async fn setup_snipers(ctx: &Context) {
             .filter(move |m: &Message| m.content.contains(&command.author.name))
             .stream();
         if let Some(msg) = collector.next().await {
-            match sniper.update_statistics(&msg.content) {
-                Ok(_) => sniper.running = true,
-                Err(_) => {
+            let statistics = extract_statistics(&msg.content);
+            match statistics {
+                Some(_) => sniper.running = true,
+                None => {
                     msg.react(&sniper.http, '❌').await.unwrap();
                 }
             };
