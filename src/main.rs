@@ -2,6 +2,7 @@ mod handler;
 mod models;
 mod settings;
 mod snipers;
+mod utils;
 
 use handler::Handler;
 use serenity_self::{Client, all::GatewayIntents};
