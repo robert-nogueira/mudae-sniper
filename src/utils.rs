@@ -1,87 +1,66 @@
-use std::str::FromStr;
-
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 use regex::Regex;
 
 use crate::snipers::Statistics;
 
-pub fn extract_statistics(text: &str) -> Option<Statistics> {
-    fn parse_num<T: FromStr>(s: &str) -> Option<T> {
-        let mut s = s.replace(".", "");
-        s = s.replace(",", "");
-        s.parse::<T>().ok()
-    }
+#[derive(Debug)]
+pub struct InvalidStatisticsData(&'static str);
 
-    fn parse_duration_from_line(
-        line_index: usize,
-        lines: &[&str],
-        values_str: &mut Vec<&str>,
-    ) -> Option<DateTime<Utc>> {
-        let regex_get_number = Regex::new(r"\d+(?:[.,]\d{3})*").unwrap();
-        let line = lines.get(line_index)?;
-        let count = regex_get_number.find_iter(line).count();
-        if count == 2 {
-            let min_str = values_str.remove(line_index + 1);
-            Some(
-                Utc::now()
-                    + Duration::hours(parse_num(values_str[line_index])?)
-                    + Duration::minutes(parse_num(min_str).unwrap_or(0)),
-            )
-        } else if count == 1 {
-            Some(
-                Utc::now()
-                    + Duration::minutes(parse_num(values_str[line_index])?),
-            )
-        } else {
-            None
+impl std::fmt::Display for InvalidStatisticsData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "erro ao extrair estatísticas: {}", self.0)
+    }
+}
+
+impl std::error::Error for InvalidStatisticsData {}
+
+pub fn extract_statistics(
+    text: &str,
+) -> Result<Statistics, InvalidStatisticsData> {
+    if text.contains("your") && text.lines().count() != 11
+        || !text.contains("your") && text.lines().count() != 12
+    {
+        return Err(InvalidStatisticsData("invalid statistics input format"));
+    };
+    fn arr_to_duration(arr: &[u32; 2]) -> Duration {
+        if arr.is_empty() {
+            return Duration::seconds(0);
         }
+        Duration::hours(arr[0] as i64) + Duration::minutes(arr[1] as i64)
     }
-
     let regex_get_number = Regex::new(r"\d+(?:[.,]\d{3})*").unwrap();
-    let mut values_str: Vec<&str> = regex_get_number
-        .find_iter(text)
-        .map(|m| m.as_str())
-        .collect();
-    let mut lines: Vec<&str> = text.lines().collect();
 
-    // This split is necessary because only in English this information comes as a single line,
-    // while in other languages it's already split into two separate lines.
-    if text.contains("you") && lines.len() > 1 {
-        let parts: Vec<&str> = lines[1].splitn(2, ". ").collect();
-        if parts.len() == 2 {
-            lines.splice(1..2, vec![parts[0], parts[1]]);
+    let mut values: [[u32; 2]; 12] = [([0, 0]); 12];
+    for (out_index, line) in text.lines().enumerate().take(12) {
+        for (inner_index, value) in regex_get_number
+            .find_iter(line)
+            .filter_map(|x| x.as_str().parse::<u32>().ok())
+            .enumerate()
+            .take(2)
+        {
+            values[out_index][inner_index] = value;
         }
     }
 
-    let claim_time: DateTime<Utc> =
-        parse_duration_from_line(0, &lines, &mut values_str)?;
-    let rolls_remaining: u8 = parse_num::<u8>(values_str[1])?;
-    let next_rolls: DateTime<Utc> =
-        parse_duration_from_line(2, &lines, &mut values_str)?;
-    let next_daily: DateTime<Utc> =
-        parse_duration_from_line(3, &lines, &mut values_str)
-            .unwrap_or(Utc::now());
-    let next_kakera_react: DateTime<Utc> =
-        parse_duration_from_line(4, &lines, &mut values_str)
-            .unwrap_or(Utc::now());
-    let kakera_power: u8 = parse_num::<u8>(values_str[5])?;
-    let kakera_cost: u8 = parse_num::<u8>(values_str[6])?;
-    let kakera_cost_half: u8 = kakera_cost / 2; // skip line 7
-    let kakera_stock: u32 = parse_num::<u32>(values_str[8])?;
-    let next_rt: Option<DateTime<Utc>> = if lines[9].contains("$rt") {
-        parse_duration_from_line(9, &lines, &mut values_str)
+    let now = Utc::now();
+    let claim_time = now + arr_to_duration(&values[0]);
+    let rolls_remaining = values[1][0] as u8;
+    let next_rolls = now + arr_to_duration(&values[2]);
+    let next_kakera_react = now + arr_to_duration(&values[3]);
+    let kakera_power = values[4][0] as u8;
+    let kakera_cost = values[5][0] as u8;
+    let kakera_cost_half = values[6][0] as u8;
+    let kakera_stock = values[7][0];
+    let next_daily = now + arr_to_duration(&values[8]);
+    let next_dk = now + arr_to_duration(&values[9]);
+    let next_rt = if !values[10].is_empty() {
+        Some(now + arr_to_duration(&values[10]))
     } else {
         None
     };
-    let next_dk: DateTime<Utc> = if lines[10].contains("$dk") {
-        parse_duration_from_line(9, &lines, &mut values_str)
-            .unwrap_or(Utc::now())
-    } else {
-        Utc::now()
-    };
-    let rolls_reset_stock = parse_num::<u16>(values_str[10])?;
+    let rolls_reset_stock = values[11][0] as u16;
 
-    let status = Statistics {
+    Ok(Statistics {
         claim_time,
         rolls_remaining,
         next_rolls,
@@ -94,80 +73,82 @@ pub fn extract_statistics(text: &str) -> Option<Statistics> {
         next_rt,
         next_dk,
         rolls_reset_stock,
-    };
-    Some(status)
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::extract_statistics;
+    use super::*;
 
     #[test]
     fn test_get_status_ptbr() {
-        let text = "**allma_**, Calma aí, falta um tempo antes que você possa se casar novamente **1h 09** min.
-Você tem **17** rolls restantes.
-A próxima reinicialização é em **39** min.
-Próximo reset do $daily em **19h 54** min.
+        let text = "**allma_**, você __pode__ se casar agora mesmo! A próxima reinicialização é em **1h 00** min.
+Você tem **0** rolls restantes.
+A próxima reinicialização é em **60** min.
 Você __pode__ pegar kakera agora!
-Power: **100%**
-Cada reação de kakera consume 70% de seu reaction power.
-Seus Personagens com 10+ chaves consome metade do power (35%)
-Stock: **9.040**<:kakera:469835869059153940>
-$rt está pronto!
-$dk está pronto!
-Você tem **37** rolls reset no estoque";
+Power: **110%**
+Cada reação de kakera consume 36% de seu reaction power.
+Seus Personagens com 10+ chaves consome metade do power (18%)
+Stock: **7.611**<:kakera:469835869059153940>
+Próximo reset do $daily em **12h 16** min.
+O próximo $dk em **12h 16** min.
+A recarga do $rt ainda não acabou. Tempo restante: **38h 31** min. ($rtu)
+Você tem **35** rolls reset no estoque";
         let status = extract_statistics(text);
-        assert!(status.is_some());
+        assert!(status.is_ok());
     }
 
     #[test]
     fn test_get_status_en() {
-        let text = "**allma_**, you __can__ claim right now! The next claim reset is in **25** min.
-You have **10** rolls left. Next rolls reset in **25** min.
-Next $daily reset in **11h 32** min.
+        let text = "**allma_**, you __can__ claim right now! The next claim reset is in **1h 29** min.
+You have **17** rolls left. Next rolls reset in **29** min.
 You __can__ react to kakera right now!
-Power: **100%**
-Each kakera reaction consumes 100% of your reaction power.
-Your characters with 10+ keys consume half the power (50%)
-Stock: **0**<:kakera:469835869059153940>
-$dk is ready!
-You have **38** rolls reset in stock.";
+Power: **110%**
+Each kakera reaction consumes 36% of your reaction power.
+Your characters with 10+ keys consume half the power (18%)
+Stock: **7,611**<:kakera:469835869059153940>
+Next $daily reset in **9h 45** min.
+Next $dk in **9h 45** min.
+The cooldown of $rt is not over. Time left: **36h 00** min. ($rtu)
+You have **35** rolls reset in stock.";
         let status = extract_statistics(text);
-        assert!(status.is_some());
+        assert!(status.is_ok());
     }
 
     #[test]
     fn test_get_status_fr() {
-        let text = "**allma_**, vous __pouvez__ vous marier dès maintenant ! Le prochain reset est dans **24** min.
-Vous avez **10** rolls restants.
-Prochain rolls reset dans **24** min.
-Prochain $daily reset dans **11h 31** min.
+        let text = "**allma_**, vous __pouvez__ vous marier dès maintenant ! Le prochain reset est dans **1h 29** min.
+Vous avez **17** rolls restants.
+Prochain rolls reset dans **29** min.
 Vous __pouvez__ réagir aux kakera dès maintenant !
-Power: **100%**
-Chaque réaction à un kakera consomme 100% de votre pouvoir de réaction.
-Vos personnages possédant 10+ keys consomment moitié moins de pouvoir (50%)
-Stock: **0**<:kakera:469835869059153940>
-$dk est prêt !
-Vous avez **38** rolls reset en stock.";
+Power: **110%**
+Chaque réaction à un kakera consomme 36% de votre pouvoir de réaction.
+Vos personnages possédant 10+ keys consomment moitié moins de pouvoir (18%)
+Stock: **7.611**<:kakera:469835869059153940>
+Prochain $daily reset dans **9h 45** min.
+Prochain $dk dans **9h 45** min.
+$rt n'est pas encore disponible. Temps restant : **36h 00** min. ($rtu)
+Vous avez **35** rolls reset en stock.";
         let status = extract_statistics(text);
-        assert!(status.is_some());
+        assert!(status.is_ok());
     }
 
     #[test]
     fn test_get_status_es() {
         let text =
-            "**allma_**, __puedes__ reclamar ahora mismo. El siguiente reclamo será en **24** min.
-Tienes **10** rolls restantes.
-El siguiente reinicio será en **24** min.
-Siguiente reinicio de $daily en **11h 31** min.
+            "**allma_**, __puedes__ reclamar ahora mismo. El siguiente reclamo será en **1h 28** min.
+Tienes **17** rolls restantes.
+El siguiente reinicio será en **28** min.
 ¡__Puedes__ reaccionar a kakera en este momento!
-Poder: **100%**
-Cada reacción de kakera consume 100% de su poder de reacción.
-Tus personajes con 10+ llaves, consumen la mitad del poder (50%)
-Capital: **256,838**<:kakera:469835869059153940>
-¡$dk está listo!
-Tienes **38** reinicios de rolls en el inventario.";
+Poder: **110%**
+Cada reacción de kakera consume 36% de su poder de reacción.
+Tus personajes con 10+ llaves, consumen la mitad del poder (18%)
+Capital: **7.611**<:kakera:469835869059153940>
+Siguiente reinicio de $daily en **9h 44** min.
+Siguiente $dk en **9h 44** min.
+El enfriamiento de $rt no ha terminado. Tiempo restante: **35h 59** min. ($rtu)
+Tienes **35** reinicios de rolls en el inventario.";
         let status = extract_statistics(text);
-        assert!(status.is_some());
+        assert!(status.is_ok());
     }
 }

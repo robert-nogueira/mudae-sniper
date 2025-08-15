@@ -34,7 +34,7 @@ async fn setup_snipers(ctx: &Context) {
         if let Some(msg) = collector.next().await {
             let statistics = extract_statistics(&msg.content);
             match statistics {
-                Some(statistics) => {
+                Ok(statistics) => {
                     sniper = Arc::new(Mutex::new(Sniper::new(
                         channel_id,
                         SETTINGS.guild_id.into(),
@@ -43,7 +43,7 @@ async fn setup_snipers(ctx: &Context) {
                     )));
                     SNIPERS.insert(channel_id, Arc::clone(&sniper));
                 }
-                None => {
+                Err(_) => {
                     msg.react(&ctx, '❌').await.unwrap();
                 }
             };
