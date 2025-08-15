@@ -17,7 +17,7 @@ impl std::error::Error for InvalidStatisticsData {}
 pub fn extract_statistics(
     text: &str,
 ) -> Result<Statistics, InvalidStatisticsData> {
-    if !(11..12).contains(&text.lines().count()) {
+    if !(11..13).contains(&text.lines().count()) {
         return Err(InvalidStatisticsData("invalid statistics input format"));
     };
     fn arr_to_duration(arr: &[u32; 2]) -> Duration {
@@ -80,16 +80,17 @@ mod tests {
 
     #[test]
     fn test_get_status_ptbr() {
-        let text = "**allma_**, você __pode__ se casar agora mesmo! A próxima reinicialização é em **2h 12** min.
-Você tem **18** rolls (+**1** $mk) restantes.
-A próxima reinicialização é em **12** min.
+        let text = "**allma_**, você __pode__ se casar agora mesmo! A próxima reinicialização é em **4** min.
+Você tem **17** rolls restantes.
+A próxima reinicialização é em **4** min.
 Você __pode__ pegar kakera agora!
-Power: **100%**
-Cada reação de kakera consume 100% de seu reaction power.
-Seus Personagens com 10+ chaves consome metade do power (50%)
-Stock: **4.141**<:kakera:469835869059153940>
-Próximo reset do $daily em **9h 29** min.
-$dk está pronto!
+Power: **110%**
+Cada reação de kakera consume 36% de seu reaction power.
+Seus Personagens com 10+ chaves consome metade do power (18%)
+Stock: **7.611**<:kakera:469835869059153940>
+Próximo reset do $daily em **8h 20** min.
+O próximo $dk em **8h 20** min.
+A recarga do $rt ainda não acabou. Tempo restante: **34h 35** min. ($rtu)
 Você tem **35** rolls reset no estoque";
         let status = extract_statistics(text);
         assert!(status.is_ok());
