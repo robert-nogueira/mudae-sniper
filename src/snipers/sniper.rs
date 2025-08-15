@@ -6,7 +6,9 @@ use crate::settings::SETTINGS;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
-use serenity_self::all::{ActionRowComponent, ButtonKind, ChannelId, GuildId, Http, Message};
+use serenity_self::all::{
+    ActionRowComponent, ButtonKind, ChannelId, GuildId, Http, Message,
+};
 
 use super::Statistics;
 
@@ -104,10 +106,14 @@ impl Sniper {
             };
             self.click_button(custom_id, message.id.into()).await;
 
-            let desc = some_or_continue!(message.embeds[0].description.clone());
+            let desc =
+                some_or_continue!(message.embeds[0].description.clone());
             let value = some_or_continue!(desc.split("\n").last());
             let value: u16 = some_or_continue!(value.parse().ok());
-            let kakera = some_or_continue!(Kakera::from_emoji_id(button_emoji_id.into(), value));
+            let kakera = some_or_continue!(Kakera::from_emoji_id(
+                button_emoji_id.into(),
+                value
+            ));
             self.statistics.kakera_power -= self.statistics.kakera_cost;
             self.statistics.kakera_stock += value as u32;
             kakeras_sniped.push(kakera);

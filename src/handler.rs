@@ -1,7 +1,10 @@
 use std::{sync::Arc, time::Duration};
 
 use serenity_self::{
-    all::{ChannelId, Context, EventHandler, Message, MessageCollector, async_trait},
+    all::{
+        ChannelId, Context, EventHandler, Message, MessageCollector,
+        async_trait,
+    },
     futures::StreamExt,
 };
 use tokio::sync::Mutex;
@@ -24,7 +27,9 @@ async fn setup_snipers(ctx: &Context) {
             .channel_id(channel_id)
             .author_id(432610292342587392.into())
             .timeout(Duration::from_secs(30))
-            .filter(move |m: &Message| m.content.contains(&command.author.name))
+            .filter(move |m: &Message| {
+                m.content.contains(&command.author.name)
+            })
             .stream();
         if let Some(msg) = collector.next().await {
             let statistics = extract_statistics(&msg.content);
@@ -49,7 +54,9 @@ async fn setup_snipers(ctx: &Context) {
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        if msg.author.id == SETTINGS.client_id && msg.content.as_str() == "!start" {
+        if msg.author.id == SETTINGS.client_id
+            && msg.content.as_str() == "!start"
+        {
             msg.delete(&ctx.http).await.unwrap();
             setup_snipers(&ctx).await;
         };

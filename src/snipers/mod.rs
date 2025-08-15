@@ -12,4 +12,5 @@ pub use sniper::Sniper;
 pub use statistics::Statistics;
 use tokio::sync::Mutex;
 
-pub static SNIPERS: LazyLock<DashMap<ChannelId, Arc<Mutex<Sniper>>>> = LazyLock::new(DashMap::new);
+pub static SNIPERS: LazyLock<DashMap<ChannelId, Arc<Mutex<Sniper>>>> =
+    LazyLock::new(DashMap::new);

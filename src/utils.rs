@@ -28,7 +28,10 @@ pub fn extract_statistics(text: &str) -> Option<Statistics> {
                     + Duration::minutes(parse_num(min_str).unwrap_or(0)),
             )
         } else if count == 1 {
-            Some(Utc::now() + Duration::minutes(parse_num(values_str[line_index])?))
+            Some(
+                Utc::now()
+                    + Duration::minutes(parse_num(values_str[line_index])?),
+            )
         } else {
             None
         }
@@ -50,13 +53,17 @@ pub fn extract_statistics(text: &str) -> Option<Statistics> {
         }
     }
 
-    let claim_time: DateTime<Utc> = parse_duration_from_line(0, &lines, &mut values_str)?;
+    let claim_time: DateTime<Utc> =
+        parse_duration_from_line(0, &lines, &mut values_str)?;
     let rolls_remaining: u8 = parse_num::<u8>(values_str[1])?;
-    let next_rolls: DateTime<Utc> = parse_duration_from_line(2, &lines, &mut values_str)?;
+    let next_rolls: DateTime<Utc> =
+        parse_duration_from_line(2, &lines, &mut values_str)?;
     let next_daily: DateTime<Utc> =
-        parse_duration_from_line(3, &lines, &mut values_str).unwrap_or(Utc::now());
+        parse_duration_from_line(3, &lines, &mut values_str)
+            .unwrap_or(Utc::now());
     let next_kakera_react: DateTime<Utc> =
-        parse_duration_from_line(4, &lines, &mut values_str).unwrap_or(Utc::now());
+        parse_duration_from_line(4, &lines, &mut values_str)
+            .unwrap_or(Utc::now());
     let kakera_power: u8 = parse_num::<u8>(values_str[5])?;
     let kakera_cost: u8 = parse_num::<u8>(values_str[6])?;
     let kakera_cost_half: u8 = kakera_cost / 2; // skip line 7
@@ -67,7 +74,8 @@ pub fn extract_statistics(text: &str) -> Option<Statistics> {
         None
     };
     let next_dk: DateTime<Utc> = if lines[10].contains("$dk") {
-        parse_duration_from_line(9, &lines, &mut values_str).unwrap_or(Utc::now())
+        parse_duration_from_line(9, &lines, &mut values_str)
+            .unwrap_or(Utc::now())
     } else {
         Utc::now()
     };
