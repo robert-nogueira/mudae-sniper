@@ -82,7 +82,7 @@ pub async fn daily_claimer(
 
 pub async fn daily_kakera_claimer(
     sniper_mutex: Arc<Mutex<Sniper>>,
-    shard: &ShardMessenger,
+    shard: ShardMessenger,
 ) {
     fn parse_num(text: &str) -> Option<u32> {
         text.replace(",", "").replace(".", "").parse().ok()
@@ -118,7 +118,7 @@ pub async fn daily_kakera_claimer(
             .say(&http, "$daily")
             .await
             .expect("fail on send &daily");
-        let mut collector = MessageCollector::new(shard)
+        let mut collector = MessageCollector::new(&shard)
             .channel_id(channel_id)
             .author_id(432610292342587392.into())
             .timeout(TimeDuration::from_secs(30))
