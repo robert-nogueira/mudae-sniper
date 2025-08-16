@@ -1,7 +1,12 @@
+use std::sync::LazyLock;
+
 use chrono::{Duration, Utc};
 use regex::Regex;
 
 use crate::snipers::Statistics;
+
+pub static REGEX_GET_NUMBERS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\d+(?:[.,]\d{3})*").unwrap());
 
 #[derive(Debug)]
 pub struct InvalidStatisticsData(&'static str);
@@ -26,11 +31,10 @@ pub fn extract_statistics(
         }
         Duration::hours(arr[0] as i64) + Duration::minutes(arr[1] as i64)
     }
-    let regex_get_number = Regex::new(r"\d+(?:[.,]\d{3})*").unwrap();
 
     let mut values: [[u32; 2]; 12] = [([0, 0]); 12];
     for (out_index, line) in text.lines().enumerate().take(12) {
-        for (inner_index, value) in regex_get_number
+        for (inner_index, value) in REGEX_GET_NUMBERS
             .find_iter(line)
             .filter_map(|x| x.as_str().parse::<u32>().ok())
             .enumerate()
