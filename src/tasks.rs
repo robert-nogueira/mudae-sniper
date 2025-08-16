@@ -24,7 +24,7 @@ use crate::{
 
 pub async fn daily_claimer(
     sniper_mutex: Arc<Mutex<Sniper>>,
-    shard: &ShardMessenger,
+    shard: ShardMessenger,
 ) {
     let mut next_daily: DateTime<Utc>;
     let mut running: bool;
@@ -56,7 +56,7 @@ pub async fn daily_claimer(
             .say(&http, "$daily")
             .await
             .expect("fail on send &daily");
-        let mut collector = ReactionCollector::new(shard)
+        let mut collector = ReactionCollector::new(&shard)
             .channel_id(channel_id)
             .author_id(432610292342587392.into())
             .timeout(TimeDuration::from_secs(30))
