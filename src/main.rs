@@ -2,6 +2,7 @@ mod handler;
 mod models;
 mod settings;
 mod snipers;
+mod tasks;
 mod utils;
 
 use handler::Handler;
