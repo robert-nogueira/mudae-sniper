@@ -12,6 +12,7 @@ use tokio::sync::Mutex;
 use crate::{
     settings::SETTINGS,
     snipers::{SNIPERS, Sniper},
+    tasks,
     utils::extract_statistics,
 };
 
@@ -47,6 +48,17 @@ async fn setup_snipers(ctx: &Context) {
                     msg.react(&ctx, '❌').await.unwrap();
                 }
             };
+            for entry in SNIPERS.iter() {
+                let sniper = entry.value();
+                tokio::spawn(tasks::daily_claimer(
+                    Arc::clone(sniper),
+                    ctx.shard.clone(),
+                ));
+                tokio::spawn(tasks::daily_kakera_claimer(
+                    Arc::clone(sniper),
+                    ctx.shard.clone(),
+                ));
+            }
         }
     }
 }
