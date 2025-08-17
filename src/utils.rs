@@ -1,9 +1,10 @@
 use std::sync::LazyLock;
 
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Local, Offset, Utc};
+use chrono_tz::Tz;
 use regex::Regex;
 
-use crate::snipers::Statistics;
+use crate::{settings::SETTINGS, snipers::Statistics};
 
 pub static REGEX_GET_NUMBERS: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\d+(?:[.,]\d{3})*").unwrap());
@@ -19,6 +20,10 @@ impl std::fmt::Display for InvalidStatisticsData {
 
 impl std::error::Error for InvalidStatisticsData {}
 
+pub fn get_local_time() -> DateTime<Tz> {
+    Utc::now().with_timezone(&SETTINGS.timezone)
+}
+
 pub fn extract_statistics(
     text: &str,
 ) -> Result<Statistics, InvalidStatisticsData> {
@@ -27,7 +32,7 @@ pub fn extract_statistics(
     };
     fn arr_to_duration(arr: &[u32; 2]) -> Duration {
         if arr[0] == 0 && arr[1] == 0 {
-            return Duration::seconds(1);
+            return Duration::seconds(0);
         }
         Duration::hours(arr[0] as i64) + Duration::minutes(arr[1] as i64)
     }
@@ -44,14 +49,14 @@ pub fn extract_statistics(
         }
     }
 
-    let now = Utc::now();
+    let now = get_local_time();
     let claim_time = now + arr_to_duration(&values[0]);
     let rolls_remaining = values[1][0] as u8;
     let next_rolls = now + arr_to_duration(&values[2]);
     let next_kakera_react = now + arr_to_duration(&values[3]);
     let kakera_power = values[4][0] as u8;
     let kakera_cost = values[5][0] as u8;
-    let kakera_cost_half = values[6][0] as u8;
+    let kakera_cost_half = values[6][1] as u8;
     let kakera_stock = values[7][0];
     let next_daily = now + arr_to_duration(&values[8]);
     let next_dk = now + arr_to_duration(&values[9]);
@@ -84,18 +89,18 @@ mod tests {
 
     #[test]
     fn test_get_status_ptbr() {
-        let text = "**allma_**, você __pode__ se casar agora mesmo! A próxima reinicialização é em **4** min.
-Você tem **17** rolls restantes.
-A próxima reinicialização é em **4** min.
+        let text = "**allma_**, você __pode__ se casar agora mesmo! A próxima reinicialização é em **2h 40** min.
+Você tem **10** rolls restantes.
+A próxima reinicialização é em **40** min.
 Você __pode__ pegar kakera agora!
-Power: **110%**
-Cada reação de kakera consume 36% de seu reaction power.
-Seus Personagens com 10+ chaves consome metade do power (18%)
-Stock: **7.611**<:kakera:469835869059153940>
-Próximo reset do $daily em **8h 20** min.
-O próximo $dk em **8h 20** min.
+Power: **100%**
+Cada reação de kakera consume 100% de seu reaction power.
+Seus Personagens com 10+ chaves consome metade do power (50%)
+Stock: **257**:kakera:
+Próximo reset do $daily em **9h 49** min.
+$dk está pronto!
 A recarga do $rt ainda não acabou. Tempo restante: **34h 35** min. ($rtu)
-Você tem **35** rolls reset no estoque";
+Você tem **32** rolls reset no estoque";
         let status = extract_statistics(text);
         assert!(status.is_ok());
     }
@@ -138,7 +143,7 @@ Vous avez **35** rolls reset en stock.";
     #[test]
     fn test_get_status_es() {
         let text =
-            "**allma_**, __puedes__ reclamar ahora mismo. El siguiente reclamo será en **1h 28** min.
+				  "**allma_**, __puedes__ reclamar ahora mismo. El siguiente reclamo será en **1h 28** min.
 Tienes **17** rolls restantes.
 El siguiente reinicio será en **28** min.
 ¡__Puedes__ reaccionar a kakera en este momento!
