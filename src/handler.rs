@@ -50,11 +50,11 @@ async fn setup_snipers(ctx: &Context) {
             };
             for entry in SNIPERS.iter() {
                 let sniper = entry.value();
-                tokio::spawn(tasks::daily_claimer(
+                tokio::spawn(tasks::daily_claimer_task(
                     Arc::clone(sniper),
                     ctx.shard.clone(),
                 ));
-                tokio::spawn(tasks::daily_kakera_claimer(
+                tokio::spawn(tasks::daily_kakera_claimer_task(
                     Arc::clone(sniper),
                     ctx.shard.clone(),
                 ));
