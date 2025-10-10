@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use chrono_tz::Tz;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Statistics {
     pub claim_time: DateTime<Tz>,
     pub rolls_remaining: u8,
