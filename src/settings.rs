@@ -7,6 +7,7 @@ pub struct Settings {
     pub channels_ids: Vec<u64>,
     pub client_id: u64,
     pub timezone: Tz,
+    pub roll_command: String,
 }
 
 impl Settings {
@@ -31,6 +32,8 @@ impl Settings {
                 .unwrap_or_else(|_| "UTC".to_string())
                 .parse()
                 .expect("Invalid timezone in 'TIMEZONE' (examples: 'America/Sao_Paulo', 'UTC')"),
+	    roll_command: dotenv::var("ROLL_COMMAND")
+		.expect("Invalid environment variable 'ROLL_COMMAND'")
         }
     }
 }
