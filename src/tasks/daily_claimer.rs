@@ -59,7 +59,7 @@ pub async fn daily_claimer_task(
             .stream();
 
         match collector.next().await {
-            Some(reaction) => {
+            Some(_) => {
                 let mut sniper = sniper_mutex.lock().await;
                 sniper.statistics.next_daily =
                     get_local_time() + Duration::hours(20);
