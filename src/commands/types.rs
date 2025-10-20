@@ -12,6 +12,26 @@ pub enum RollType {
     Hg,
 }
 
+impl From<&str> for RollType {
+    fn from(s: &str) -> Self {
+        match s {
+            "w" => RollType::Waifu,
+            "wa" => RollType::Wa,
+            "wg" => RollType::Wg,
+            "h" => RollType::Husband,
+            "ha" => RollType::Ha,
+            "hg" => RollType::Hg,
+            _ => panic!("Unknown RollType: {}", s),
+        }
+    }
+}
+
+impl From<String> for RollType {
+    fn from(s: String) -> Self {
+        RollType::from(s.as_str())
+    }
+}
+
 pub enum CommandType {
     Daily,
     DailyKakera,
