@@ -1,3 +1,4 @@
+mod commands;
 mod handler;
 mod models;
 mod settings;
