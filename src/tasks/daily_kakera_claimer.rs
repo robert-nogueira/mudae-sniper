@@ -2,13 +2,17 @@ use std::{sync::Arc, time::Duration as TimeDuration};
 
 use chrono::{DateTime, Duration};
 use chrono_tz::Tz;
-use serenity_self::{
-    all::{Message, MessageCollector, ShardMessenger},
-    futures::StreamExt,
+use serenity_self::all::ShardMessenger;
+use tokio::{
+    sync::{Mutex, oneshot},
+    time::sleep,
 };
-use tokio::{sync::Mutex, time::sleep};
 
 use crate::{
+    commands::{
+        COMMAND_SCHEDULER, CommandContext, CommandFeedback, CommandType,
+        FeedbackType,
+    },
     snipers::Sniper,
     utils::{REGEX_GET_NUMBERS, get_local_time},
 };
@@ -50,35 +54,31 @@ pub async fn daily_kakera_claimer_task(
             (sniper.channel_id, sniper.http.clone())
         };
 
-        channel_id
-            .say(&http, "$dk")
-            .await
-            .expect("fail on send &daily");
-        let mut collector = MessageCollector::new(&shard)
-            .channel_id(channel_id)
-            .author_id(432610292342587392.into())
-            .timeout(TimeDuration::from_secs(30))
-            .filter(move |m: &Message| REGEX_GET_NUMBERS.is_match(&m.content))
-            .stream();
+        let (tx, rx) = oneshot::channel();
+        {
+            COMMAND_SCHEDULER
+                .schedule_command(CommandContext {
+                    command_type: CommandType::DailyKakera,
+                    expected_feedback: FeedbackType::Reaction,
+                    http: http.clone(),
+                    shard: shard.clone(),
+                    target_channel: channel_id,
+                    result_tx: tx,
+                })
+                .await;
+        }
+        if let CommandFeedback::Msg(msg) = rx.await.unwrap() {
+            let stock_value = REGEX_GET_NUMBERS
+                .find_iter(&msg.content)
+                .next()
+                .and_then(|m| parse_num(m.as_str()));
 
-        match collector.next().await {
-            Some(msg) => {
-                let stock_value = REGEX_GET_NUMBERS
-                    .find_iter(&msg.content)
-                    .next()
-                    .and_then(|m| parse_num(m.as_str()));
-
-                let mut sniper = sniper_mutex.lock().await;
-                sniper.statistics.kakera_stock =
-                    stock_value.unwrap_or(sniper.statistics.kakera_stock);
-                sniper.statistics.next_dk =
-                    get_local_time() + Duration::hours(20);
-                next_dk = sniper.statistics.next_dk;
-                running = sniper.running;
-            }
-            None => {
-                continue;
-            }
+            let mut sniper = sniper_mutex.lock().await;
+            sniper.statistics.kakera_stock =
+                stock_value.unwrap_or(sniper.statistics.kakera_stock);
+            sniper.statistics.next_dk = get_local_time() + Duration::hours(20);
+            next_dk = sniper.statistics.next_dk;
+            running = sniper.running;
         }
     }
 }
