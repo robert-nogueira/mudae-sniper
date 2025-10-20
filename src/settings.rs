@@ -8,6 +8,7 @@ pub struct Settings {
     pub client_id: u64,
     pub timezone: Tz,
     pub roll_command: String,
+    pub prefix: String,
 }
 
 impl Settings {
@@ -33,7 +34,8 @@ impl Settings {
                 .parse()
                 .expect("Invalid timezone in 'TIMEZONE' (examples: 'America/Sao_Paulo', 'UTC')"),
 	    roll_command: dotenv::var("ROLL_COMMAND")
-		.expect("Invalid environment variable 'ROLL_COMMAND'")
+		.expect("Invalid environment variable 'ROLL_COMMAND'"),
+	    prefix: dotenv::var("PREFIX").unwrap_or("$".to_string())
         }
     }
 }
