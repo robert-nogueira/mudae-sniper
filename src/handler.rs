@@ -8,8 +8,8 @@ use tokio::sync::{Mutex, oneshot};
 
 use crate::{
     commands::{
-        COMMAND_SCHEDULER, CommandContext, CommandFeedback, CommandType,
-        FeedbackType,
+        COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
+        CommandType,
     },
     settings::SETTINGS,
     snipers::{SNIPERS, Sniper},
@@ -25,20 +25,22 @@ async fn setup_snipers(ctx: &Context) {
     for channel_id in channels {
         let channel_id: ChannelId = channel_id.into();
         let (tx, rx): (
-            oneshot::Sender<CommandFeedback>,
-            oneshot::Receiver<CommandFeedback>,
+            oneshot::Sender<Option<CommandFeedback>>,
+            oneshot::Receiver<Option<CommandFeedback>>,
         ) = oneshot::channel();
+        let collector = COMMAND_SCHEDULER
+            .default_message_collector(&ctx.shard, channel_id);
         COMMAND_SCHEDULER
-            .schedule_command(CommandContext {
+            .sender()
+            .send(CommandContext {
                 command_type: CommandType::Tu,
-                expected_feedback: FeedbackType::Message,
-                http: Arc::clone(&ctx.http),
-                result_tx: tx,
-                shard: ctx.shard.clone(),
+                collector: CollectorType::Msg(collector),
+                http: ctx.http.clone(),
                 target_channel: channel_id,
+                result_tx: tx,
             })
-            .await;
-        if let CommandFeedback::Msg(msg) = rx.await.unwrap() {
+            .unwrap();
+        if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
             let statistics = extract_statistics(&msg.content);
             match statistics {
                 Ok(statistics) => {
@@ -61,6 +63,10 @@ async fn setup_snipers(ctx: &Context) {
                     ctx.shard.clone(),
                 ));
                 tokio::spawn(tasks::daily_kakera_claimer_task(
+                    Arc::clone(sniper),
+                    ctx.shard.clone(),
+                ));
+                tokio::spawn(tasks::roll_cards(
                     Arc::clone(sniper),
                     ctx.shard.clone(),
                 ));

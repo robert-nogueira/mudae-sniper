@@ -10,8 +10,8 @@ use tokio::{
 
 use crate::{
     commands::{
-        COMMAND_SCHEDULER, CommandContext, CommandFeedback, CommandType,
-        FeedbackType,
+        COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
+        CommandType,
     },
     snipers::Sniper,
     utils::{REGEX_GET_NUMBERS, get_local_time},
@@ -55,19 +55,21 @@ pub async fn daily_kakera_claimer_task(
         };
 
         let (tx, rx) = oneshot::channel();
-        {
-            COMMAND_SCHEDULER
-                .schedule_command(CommandContext {
-                    command_type: CommandType::DailyKakera,
-                    expected_feedback: FeedbackType::Reaction,
-                    http: http.clone(),
-                    shard: shard.clone(),
-                    target_channel: channel_id,
-                    result_tx: tx,
-                })
-                .await;
-        }
-        if let CommandFeedback::Msg(msg) = rx.await.unwrap() {
+        let collector = COMMAND_SCHEDULER
+            .default_message_collector(&shard, channel_id)
+            .filter(move |m| REGEX_GET_NUMBERS.is_match(&m.content));
+        COMMAND_SCHEDULER
+            .sender()
+            .send(CommandContext {
+                command_type: CommandType::DailyKakera,
+                collector: CollectorType::Msg(collector),
+                http: http.clone(),
+                target_channel: channel_id,
+                result_tx: tx,
+            })
+            .unwrap();
+
+        if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
             let stock_value = REGEX_GET_NUMBERS
                 .find_iter(&msg.content)
                 .next()
