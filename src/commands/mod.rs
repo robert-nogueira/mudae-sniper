@@ -10,7 +10,7 @@ pub use types::*;
 
 pub static COMMAND_SCHEDULER: LazyLock<Arc<CommandScheduler>> =
     LazyLock::new(|| {
-        let scheduler = Arc::new(CommandScheduler::new());
+        let scheduler = CommandScheduler::new();
         scheduler.clone().start();
         scheduler
     });

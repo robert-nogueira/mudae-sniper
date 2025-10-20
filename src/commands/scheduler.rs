@@ -1,101 +1,103 @@
 use super::context::CommandContext;
-use super::types::{CommandFeedback, FeedbackType};
-use crate::utils::{REGEX_GET_NUMBERS, get_local_time};
-use chrono::DateTime;
-use chrono_tz::Tz;
-use serenity_self::all::{MessageCollector, ReactionCollector};
-use serenity_self::futures::StreamExt;
+use super::{CollectorType, CommandFeedback};
+use serenity_self::all::{
+    ChannelId, MessageCollector, ReactionCollector, ShardMessenger,
+};
 use std::sync::Arc;
 use std::time::Duration as TimeDuration;
 use tokio::sync::Mutex;
+use tokio::sync::mpsc::{
+    UnboundedReceiver, UnboundedSender, unbounded_channel,
+};
 use tokio::time::sleep;
 
-struct CommandQueue {
-    items: Vec<CommandContext>,
-}
-
-impl CommandQueue {
-    fn new() -> Self {
-        CommandQueue { items: Vec::new() }
-    }
-
-    fn push(&mut self, ctx: CommandContext) {
-        self.items.push(ctx)
-    }
-
-    fn pop(&mut self) -> Option<CommandContext> {
-        self.items.pop()
-    }
-}
-
 pub struct CommandScheduler {
-    // pub last_command: DateTime<Tz>,
-    queue: Arc<Mutex<CommandQueue>>,
+    rx: Mutex<UnboundedReceiver<CommandContext>>,
+    tx: UnboundedSender<CommandContext>,
 }
 
 impl CommandScheduler {
-    pub fn new() -> Self {
-        CommandScheduler {
-            // last_command: get_local_time(),
-            queue: Arc::new(Mutex::new(CommandQueue::new())),
-        }
+    pub fn new() -> Arc<Self> {
+        let (tx, rx) = unbounded_channel::<CommandContext>();
+        Arc::new(Self {
+            rx: Mutex::new(rx),
+            tx,
+        })
+    }
+
+    pub fn sender(&self) -> UnboundedSender<CommandContext> {
+        self.tx.clone()
+    }
+
+    pub fn default_message_collector(
+        &self,
+        shard: &ShardMessenger,
+        target_channel: ChannelId,
+    ) -> MessageCollector {
+        MessageCollector::new(shard)
+            .channel_id(target_channel)
+            .author_id(432610292342587392.into())
+            .timeout(TimeDuration::from_secs(30))
+    }
+
+    pub fn default_reaction_collector(
+        &self,
+        shard: &ShardMessenger,
+        target_channel: ChannelId,
+    ) -> ReactionCollector {
+        ReactionCollector::new(shard)
+            .channel_id(target_channel)
+            .author_id(432610292342587392.into())
+            .timeout(TimeDuration::from_secs(30))
     }
 
     pub fn start(self: Arc<Self>) {
+        let this = self.clone();
         tokio::spawn(async move {
-            loop {
-                let next = {
-                    let mut queue_guard = self.queue.lock().await;
-                    queue_guard.pop()
-                };
-
-                if let Some(next) = next {
-                    let result = self.task_execute_command(&next).await;
-                    let _ = next.result_tx.send(result);
-                } else {
-                    sleep(std::time::Duration::from_millis(500)).await;
-                }
+            while let Some(next) = {
+                let mut rx = this.rx.lock().await;
+                rx.recv().await
+            } {
+                self.task_execute(next).await;
+                sleep(TimeDuration::from_millis(200)).await;
             }
         });
     }
+}
 
-    pub async fn schedule_command(&self, ctx: CommandContext) {
-        self.queue.lock().await.push(ctx);
-    }
-
-    pub async fn task_execute_command(
-        &self,
-        ctx: &CommandContext,
-    ) -> CommandFeedback {
+impl CommandScheduler {
+    pub async fn task_execute(&self, ctx: CommandContext) {
         ctx.target_channel
             .say(&ctx.http, ctx.command_type.to_string())
             .await
             .expect("fail on send {command:?}");
-        let result: Option<CommandFeedback> = match ctx.expected_feedback {
-            FeedbackType::Message => {
-                let mut collector = MessageCollector::new(&ctx.shard)
-                    .channel_id(ctx.target_channel)
-                    .author_id(432610292342587392.into())
-                    .timeout(TimeDuration::from_secs(30))
-                    .filter(move |m| REGEX_GET_NUMBERS.is_match(&m.content))
-                    .stream();
-                collector.next().await.map(CommandFeedback::Msg)
+        match ctx.collector {
+            CollectorType::Msg(collector) => {
+                let feedback = collector.next().await;
+                match feedback {
+                    Some(f) => {
+                        let _ = ctx
+                            .result_tx
+                            .send(Some(CommandFeedback::Msg(Box::new(f))));
+                    }
+                    None => {
+                        let _ = ctx.result_tx.send(None);
+                    }
+                };
             }
-            FeedbackType::Reaction => {
-                let mut collector = ReactionCollector::new(&ctx.shard)
-                    .channel_id(ctx.target_channel)
-                    .author_id(432610292342587392.into())
-                    .timeout(TimeDuration::from_secs(30))
-                    .filter(move |r| match &r.emoji {
-                        serenity_self::all::ReactionType::Unicode(unicode) => {
-                            unicode == "✅"
-                        }
-                        _ => false,
-                    })
-                    .stream();
-                collector.next().await.map(CommandFeedback::React)
+            CollectorType::React(collector) => {
+                let feedback = collector.next().await;
+                match feedback {
+                    Some(_) => {
+                        let _ = ctx
+                            .result_tx
+                            .send(Some(CommandFeedback::React(())));
+                    }
+                    None => {
+                        let _ = ctx.result_tx.send(None);
+                    }
+                };
             }
-        };
-        result.unwrap()
+        }
     }
 }

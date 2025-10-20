@@ -1,5 +1,7 @@
 use core::fmt;
-use serenity_self::all::{Message, Reaction};
+use serenity_self::all::{
+    Message, MessageCollector, Reaction, ReactionCollector,
+};
 
 use crate::settings::SETTINGS;
 
@@ -58,13 +60,13 @@ impl fmt::Display for CommandType {
     }
 }
 
-pub enum FeedbackType {
-    Message,
-    Reaction,
+pub enum CollectorType {
+    Msg(MessageCollector),
+    React(ReactionCollector),
 }
 
 #[derive(Clone)]
 pub enum CommandFeedback {
-    Msg(Message),
-    React(Reaction),
+    Msg(Box<Message>),
+    React(()),
 }

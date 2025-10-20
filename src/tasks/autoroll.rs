@@ -8,9 +8,10 @@ use tokio::{
 
 use crate::{
     commands::{
-        COMMAND_SCHEDULER, CommandContext, CommandFeedback, CommandType,
-        FeedbackType,
+        COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
+        CommandType,
     },
+    settings::SETTINGS,
     snipers::{Sniper, Statistics},
     utils::get_local_time,
 };
@@ -39,26 +40,36 @@ pub async fn roll_cards(
             statistics = sniper.statistics;
             running = sniper.running;
         }
+
         let wait_duration = (statistics.next_rolls - get_local_time())
             .to_std()
             .unwrap_or(TimeDuration::ZERO);
-        sleep(wait_duration).await;
+        if statistics.rolls_remaining == 0 {
+            sleep(wait_duration).await;
+        }
 
         for _ in 0..statistics.rolls_remaining {
-            let (tx, rx) = oneshot::channel();
-            {
-                COMMAND_SCHEDULER
-                    .schedule_command(CommandContext {
-                        command_type: CommandType::DailyKakera,
-                        expected_feedback: FeedbackType::Reaction,
-                        http: http.clone(),
-                        shard: shard.clone(),
-                        target_channel: channel_id,
-                        result_tx: tx,
-                    })
-                    .await;
-            }
-            if let CommandFeedback::Msg(_) = rx.await.unwrap() {
+            let (tx, rx): (
+                oneshot::Sender<Option<CommandFeedback>>,
+                oneshot::Receiver<Option<CommandFeedback>>,
+            ) = oneshot::channel();
+            let collector = COMMAND_SCHEDULER
+                .default_message_collector(&shard, channel_id);
+            COMMAND_SCHEDULER
+                .sender()
+                .send(CommandContext {
+                    command_type: CommandType::Roll(
+                        SETTINGS.roll_command.as_str().into(),
+                    ),
+                    collector: CollectorType::Msg(collector),
+                    http: http.clone(),
+                    target_channel: channel_id,
+                    result_tx: tx,
+                })
+                .unwrap();
+
+            let a = rx.await.unwrap();
+            if let Some(CommandFeedback::Msg(_)) = a {
                 statistics.rolls_remaining -= 1;
             }
         }
