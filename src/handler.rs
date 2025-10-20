@@ -1,15 +1,16 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use serenity_self::{
-    all::{
-        ChannelId, Context, EventHandler, Message, MessageCollector,
-        async_trait,
-    },
-    futures::StreamExt,
+    all::{ChannelId, Context, EventHandler, Message},
+    async_trait,
 };
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, oneshot};
 
 use crate::{
+    commands::{
+        COMMAND_SCHEDULER, CommandContext, CommandFeedback, CommandType,
+        FeedbackType,
+    },
     settings::SETTINGS,
     snipers::{SNIPERS, Sniper},
     tasks,
@@ -23,16 +24,21 @@ async fn setup_snipers(ctx: &Context) {
     let mut sniper: Arc<Mutex<Sniper>>;
     for channel_id in channels {
         let channel_id: ChannelId = channel_id.into();
-        let command = channel_id.say(&ctx, "$tu").await.unwrap();
-        let mut collector = MessageCollector::new(ctx)
-            .channel_id(channel_id)
-            .author_id(432610292342587392.into())
-            .timeout(Duration::from_secs(30))
-            .filter(move |m: &Message| {
-                m.content.contains(&command.author.name)
+        let (tx, rx): (
+            oneshot::Sender<CommandFeedback>,
+            oneshot::Receiver<CommandFeedback>,
+        ) = oneshot::channel();
+        COMMAND_SCHEDULER
+            .schedule_command(CommandContext {
+                command_type: CommandType::Tu,
+                expected_feedback: FeedbackType::Message,
+                http: Arc::clone(&ctx.http),
+                result_tx: tx,
+                shard: ctx.shard.clone(),
+                target_channel: channel_id,
             })
-            .stream();
-        if let Some(msg) = collector.next().await {
+            .await;
+        if let CommandFeedback::Msg(msg) = rx.await.unwrap() {
             let statistics = extract_statistics(&msg.content);
             match statistics {
                 Ok(statistics) => {
@@ -59,7 +65,7 @@ async fn setup_snipers(ctx: &Context) {
                     ctx.shard.clone(),
                 ));
             }
-        }
+        };
     }
 }
 
