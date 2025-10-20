@@ -20,7 +20,7 @@ use crate::{
 pub struct Handler {}
 
 async fn setup_snipers(ctx: &Context) {
-    let channels = SETTINGS.channels_ids.clone();
+    let channels = SETTINGS.sniper.channels_ids.clone();
     let mut sniper: Arc<Mutex<Sniper>>;
     for channel_id in channels {
         let channel_id: ChannelId = channel_id.into();
@@ -46,7 +46,7 @@ async fn setup_snipers(ctx: &Context) {
                 Ok(statistics) => {
                     sniper = Arc::new(Mutex::new(Sniper::new(
                         channel_id,
-                        SETTINGS.guild_id.into(),
+                        SETTINGS.sniper.guild_id.into(),
                         Arc::clone(&ctx.http),
                         statistics,
                     )));
@@ -78,13 +78,16 @@ async fn setup_snipers(ctx: &Context) {
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        if msg.author.id == SETTINGS.client_id
+        if msg.author.id == SETTINGS.client.client_id
             && msg.content.as_str() == "!start"
         {
             msg.delete(&ctx.http).await.unwrap();
             setup_snipers(&ctx).await;
         };
-        if !SETTINGS.channels_ids.contains(&msg.channel_id.into())
+        if !SETTINGS
+            .sniper
+            .channels_ids
+            .contains(&msg.channel_id.into())
             || msg.author.id != 432610292342587392
         {
             return;

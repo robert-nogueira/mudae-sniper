@@ -43,7 +43,7 @@ pub enum CommandType {
 
 impl fmt::Display for CommandType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let prefix = &SETTINGS.prefix;
+        let prefix = &SETTINGS.sniper.mudae_prefix;
         match &self {
             CommandType::Daily => write!(f, "{}daily", prefix),
             CommandType::DailyKakera => write!(f, "{}dk", prefix),

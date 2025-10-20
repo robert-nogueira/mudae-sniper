@@ -63,7 +63,7 @@ impl Sniper {
         });
         Client::new()
             .post(url)
-            .header(AUTHORIZATION, SETTINGS.token.to_string())
+            .header(AUTHORIZATION, SETTINGS.client.token.to_string())
             .json(&body)
             .send()
             .await

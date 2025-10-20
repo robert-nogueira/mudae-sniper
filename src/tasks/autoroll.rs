@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration as TimeDuration};
 
-use serenity_self::all::{ChannelId, Http, ShardMessenger};
+use serenity_self::all::{ChannelId, Embed, Http, ShardMessenger};
 use tokio::{
     sync::{Mutex, oneshot},
     time::sleep,
@@ -13,8 +13,23 @@ use crate::{
     },
     settings::SETTINGS,
     snipers::{Sniper, Statistics},
-    utils::get_local_time,
+    utils::{REGEX_GET_NUMBERS, get_local_time},
 };
+
+fn extract_kakera_value(embed: &Embed) -> u32 {
+    let desc = embed
+        .description
+        .clone()
+        .expect("no description to extract kakera value");
+    let last_line = desc.split("\n").last().expect("invalid card description");
+    let value_str = REGEX_GET_NUMBERS
+        .find(last_line)
+        .expect("kakera value not find in description");
+    value_str
+        .as_str()
+        .parse::<u32>()
+        .expect("fail on parse kakera value")
+}
 
 pub async fn roll_cards(
     sniper_mutex: Arc<Mutex<Sniper>>,
@@ -59,7 +74,7 @@ pub async fn roll_cards(
                 .sender()
                 .send(CommandContext {
                     command_type: CommandType::Roll(
-                        SETTINGS.roll_command.as_str().into(),
+                        SETTINGS.sniper.roll_command.as_str().into(),
                     ),
                     collector: CollectorType::Msg(collector),
                     http: http.clone(),
@@ -67,11 +82,14 @@ pub async fn roll_cards(
                     result_tx: tx,
                 })
                 .unwrap();
-
-            let a = rx.await.unwrap();
-            if let Some(CommandFeedback::Msg(_)) = a {
+            if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
                 statistics.rolls_remaining -= 1;
+                let card = msg.embeds[0].clone();
+                let kakera_value = extract_kakera_value(&card);
+                // if kakera_value >= SETTINGS
             }
         }
+        let mut sniper = sniper_mutex.lock().await;
+        sniper.statistics.rolls_remaining = statistics.rolls_remaining;
     }
 }
