@@ -21,3 +21,4 @@ Cargo.lock
 
 # Generated using ignr.py - github.com/Antrikshy/ignr.py
 .env
+config.toml
