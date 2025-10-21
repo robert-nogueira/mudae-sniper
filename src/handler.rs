@@ -48,6 +48,7 @@ async fn setup_snipers(ctx: &Context) {
                         channel_id,
                         SETTINGS.sniper.guild_id.into(),
                         Arc::clone(&ctx.http),
+                        ctx.shard.clone(),
                         statistics,
                     )));
                     SNIPERS.insert(channel_id, Arc::clone(&sniper));
