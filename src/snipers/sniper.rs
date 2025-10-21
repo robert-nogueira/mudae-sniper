@@ -1,15 +1,21 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::commands::{
+    COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
+    CommandType,
+};
 use crate::entities::kakera::Kakera;
 use crate::settings::SETTINGS;
+use crate::utils::extract_statistics;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
 use serenity_self::all::{
-    ActionRowComponent, ButtonKind, ChannelId, GuildId, Http, Message,
-    MessageId, ShardMessenger,
+    ActionRowComponent, ButtonKind, ChannelId, Context, GuildId, Http,
+    Message, MessageId, ShardMessenger,
 };
+use tokio::sync::oneshot;
 
 use super::Statistics;
 use super::errors::CaptureError;
@@ -75,8 +81,31 @@ impl Sniper {
             .expect("HTTP Error");
     }
 
+    pub async fn update_statistics(&mut self) {
+        let (tx, rx): (
+            oneshot::Sender<Option<CommandFeedback>>,
+            oneshot::Receiver<Option<CommandFeedback>>,
+        ) = oneshot::channel();
+        let collector = COMMAND_SCHEDULER
+            .default_message_collector(&self.shard, self.channel_id);
+        COMMAND_SCHEDULER
+            .sender()
+            .send(CommandContext {
+                command_type: CommandType::Tu,
+                collector: CollectorType::Msg(collector),
+                http: self.http.clone(),
+                target_channel: self.channel_id,
+                result_tx: tx,
+            })
+            .unwrap();
+        if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
+            self.statistics = extract_statistics(&msg.content)
+                .expect("error on extract statistics");
+        }
+    }
+
     pub async fn capture_card(
-        &self,
+        &mut self,
         message: &Message,
     ) -> Result<(), CaptureError> {
         let button = message
@@ -96,6 +125,7 @@ impl Sniper {
             _ => return Err(CaptureError::NotAButton(button.clone())),
         };
         self.click_button(&custom_id, message.id).await;
+        self.update_statistics().await;
         Ok(())
     }
 
