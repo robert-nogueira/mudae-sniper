@@ -6,6 +6,7 @@ pub struct SniperSettings {
     pub channels_ids: Vec<u64>,
     pub roll_command: String,
     pub mudae_prefix: String,
+    pub capture_threshold: u32,
 }
 // use chrono_tz::Tz;
 // use std::sync::LazyLock;
