@@ -8,7 +8,7 @@ use reqwest::header::AUTHORIZATION;
 use serde_json::json;
 use serenity_self::all::{
     ActionRowComponent, ButtonKind, ChannelId, GuildId, Http, Message,
-    MessageId,
+    MessageId, ShardMessenger,
 };
 
 use super::Statistics;
@@ -28,6 +28,7 @@ pub struct Sniper {
     pub channel_id: ChannelId,
     pub running: bool,
     pub http: Arc<Http>,
+    pub shard: ShardMessenger,
     pub statistics: Statistics,
 }
 
@@ -36,6 +37,7 @@ impl Sniper {
         channel_id: ChannelId,
         guild_id: GuildId,
         http: Arc<Http>,
+        shard: ShardMessenger,
         statistics: Statistics,
     ) -> Sniper {
         Sniper {
@@ -43,6 +45,7 @@ impl Sniper {
             guild_id,
             running: true,
             http,
+            shard,
             statistics,
         }
     }
