@@ -8,9 +8,11 @@ use reqwest::header::AUTHORIZATION;
 use serde_json::json;
 use serenity_self::all::{
     ActionRowComponent, ButtonKind, ChannelId, GuildId, Http, Message,
+    MessageId,
 };
 
 use super::Statistics;
+use super::errors::CaptureError;
 
 macro_rules! some_or_continue {
     ($expr:expr) => {
@@ -45,7 +47,7 @@ impl Sniper {
         }
     }
 
-    async fn click_button(&self, custom_id: &str, message_id: u64) {
+    async fn click_button(&self, custom_id: &str, message_id: MessageId) {
         let url = "https://discord.com/api/v10/interactions";
         let session_id = SystemTime::now() // fake session_id
             .duration_since(UNIX_EPOCH)
@@ -68,6 +70,30 @@ impl Sniper {
             .send()
             .await
             .expect("HTTP Error");
+    }
+
+    pub async fn capture_card(
+        &self,
+        message: &Message,
+    ) -> Result<(), CaptureError> {
+        let button = message
+            .components
+            .first()
+            .and_then(|row| row.components.first())
+            .ok_or(CaptureError::MissingComponent)?;
+        let custom_id: String = match button {
+            ActionRowComponent::Button(button) => match &button.data {
+                ButtonKind::NonLink { custom_id, .. } => custom_id.to_string(),
+                _ => {
+                    return Err(CaptureError::InvalidButton(
+                        button.data.clone(),
+                    ));
+                }
+            },
+            _ => return Err(CaptureError::NotAButton(button.clone())),
+        };
+        self.click_button(&custom_id, message.id).await;
+        Ok(())
     }
 
     pub async fn snipe_kakeras(&mut self, message: &Message) -> Vec<Kakera> {
@@ -104,7 +130,7 @@ impl Sniper {
                 serenity_self::all::ReactionType::Custom { id, .. } => id,
                 _ => continue,
             };
-            self.click_button(custom_id, message.id.into()).await;
+            self.click_button(custom_id, message.id).await;
 
             let desc =
                 some_or_continue!(message.embeds[0].description.clone());
