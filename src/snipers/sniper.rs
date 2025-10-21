@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::models::kakera::Kakera;
+use crate::entities::kakera::Kakera;
 use crate::settings::SETTINGS;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;

@@ -1,7 +1,5 @@
 use core::fmt;
-use serenity_self::all::{
-    Message, MessageCollector, Reaction, ReactionCollector,
-};
+use serenity_self::all::{Message, MessageCollector, ReactionCollector};
 
 use crate::settings::SETTINGS;
 

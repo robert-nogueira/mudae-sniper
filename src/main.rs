@@ -1,6 +1,6 @@
 mod commands;
+mod entities;
 mod handler;
-mod models;
 mod settings;
 mod snipers;
 mod tasks;
