@@ -1,4 +1,5 @@
 mod client_config;
+mod mudae_config;
 mod sniper_confg;
 
 use std::sync::LazyLock;
@@ -7,6 +8,7 @@ use chrono_tz::Tz;
 use client_config::ClientSettings;
 use config::{Config, ConfigError};
 use dotenv::dotenv;
+use mudae_config::MudaeSettings;
 use serde::Deserialize;
 use sniper_confg::SniperSettings;
 
@@ -14,6 +16,7 @@ use sniper_confg::SniperSettings;
 pub struct Settings {
     pub client: ClientSettings,
     pub sniper: SniperSettings,
+    pub mudae: MudaeSettings,
     pub timezone: Tz,
 }
 
