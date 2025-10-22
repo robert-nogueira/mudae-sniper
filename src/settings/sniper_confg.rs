@@ -7,6 +7,7 @@ pub struct SniperSettings {
     pub roll_command: String,
     pub mudae_prefix: String,
     pub capture_threshold: u32,
+    pub roll_after_claim: bool,
 }
 // use chrono_tz::Tz;
 // use std::sync::LazyLock;
