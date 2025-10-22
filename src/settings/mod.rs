@@ -1,3 +1,6 @@
+mod client_config;
+mod sniper_confg;
+
 use std::sync::LazyLock;
 
 use chrono_tz::Tz;
@@ -6,9 +9,6 @@ use config::{Config, ConfigError};
 use dotenv::dotenv;
 use serde::Deserialize;
 use sniper_confg::SniperSettings;
-
-mod client_config;
-mod sniper_confg;
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
