@@ -7,4 +7,5 @@ pub struct SniperSettings {
     pub roll_command: String,
     pub capture_threshold: u32,
     pub roll_after_claim: bool,
+    pub rt_capture_threshold: u32,
 }
