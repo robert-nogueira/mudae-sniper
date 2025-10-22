@@ -4,7 +4,7 @@ use chrono::{DateTime, Duration, Utc};
 use chrono_tz::Tz;
 use regex::Regex;
 
-use crate::{settings::SETTINGS, snipers::Statistics};
+use crate::{entities::statistics::Statistics, settings::SETTINGS};
 
 pub static REGEX_GET_NUMBERS: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\d+(?:[.,]\d{3})*").unwrap());

@@ -6,18 +6,18 @@ use crate::commands::{
     CommandType,
 };
 use crate::entities::kakera::Kakera;
+use crate::entities::statistics::Statistics;
 use crate::settings::SETTINGS;
 use crate::utils::extract_statistics;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
 use serenity_self::all::{
-    ActionRowComponent, ButtonKind, ChannelId, Context, GuildId, Http,
-    Message, MessageId, ShardMessenger,
+    ActionRowComponent, ButtonKind, ChannelId, GuildId, Http, Message,
+    MessageId, ShardMessenger,
 };
 use tokio::sync::oneshot;
 
-use super::Statistics;
 use super::errors::CaptureError;
 
 macro_rules! some_or_continue {

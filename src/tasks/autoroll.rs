@@ -11,8 +11,9 @@ use crate::{
         COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
         CommandType,
     },
+    entities::statistics::Statistics,
     settings::SETTINGS,
-    snipers::{Sniper, Statistics},
+    snipers::Sniper,
     utils::{REGEX_GET_NUMBERS, get_local_time},
 };
 
