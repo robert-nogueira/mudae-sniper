@@ -1,14 +1,16 @@
 use std::{collections::HashMap, sync::LazyLock};
 
+use crate::settings::SETTINGS;
+
 static BASE_BADGES_PRICES: LazyLock<HashMap<BadgeType, u16>> =
     LazyLock::new(|| {
         HashMap::from([
-            (BadgeType::Bronze, 1000),
-            (BadgeType::Silver, 2000),
-            (BadgeType::Gold, 3000),
-            (BadgeType::Sapphire, 5000),
-            (BadgeType::Ruby, 7000),
-            (BadgeType::Emerald, 9000),
+            (BadgeType::Bronze, SETTINGS.mudae.base_bronze_value),
+            (BadgeType::Silver, SETTINGS.mudae.base_bronze_value),
+            (BadgeType::Gold, SETTINGS.mudae.base_bronze_value),
+            (BadgeType::Sapphire, SETTINGS.mudae.base_bronze_value),
+            (BadgeType::Ruby, SETTINGS.mudae.base_bronze_value),
+            (BadgeType::Emerald, SETTINGS.mudae.base_bronze_value),
         ])
     });
 
