@@ -35,34 +35,31 @@ pub async fn roll_cards(
     sniper_mutex: Arc<Mutex<Sniper>>,
     shard: ShardMessenger,
 ) {
-    let mut statistics: Statistics;
-    let mut running: bool;
-    let channel_id: ChannelId;
-    let http: Arc<Http>;
-    {
-        let sniper = sniper_mutex.lock().await;
-        statistics = sniper.statistics;
-        running = sniper.running;
-        channel_id = sniper.channel_id;
-        http = sniper.http.clone();
-    }
-
     const CHECK_INTERVAL: TimeDuration = TimeDuration::from_secs(60);
     loop {
+        let mut statistics: Statistics;
+        let mut running: bool;
+        let channel_id: ChannelId;
+        let http: Arc<Http>;
+        {
+            let sniper = sniper_mutex.lock().await;
+            statistics = sniper.statistics;
+            running = sniper.running;
+            channel_id = sniper.channel_id;
+            http = sniper.http.clone();
+        }
         while !running {
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
             statistics = sniper.statistics;
             running = sniper.running;
         }
-
         let wait_duration = (statistics.next_rolls - get_local_time())
             .to_std()
             .unwrap_or(TimeDuration::ZERO);
         if statistics.rolls_remaining == 0 {
             sleep(wait_duration).await;
         }
-
         for _ in 0..statistics.rolls_remaining {
             let (tx, rx): (
                 oneshot::Sender<Option<CommandFeedback>>,
@@ -86,10 +83,16 @@ pub async fn roll_cards(
                 statistics.rolls_remaining -= 1;
                 let card = msg.embeds[0].clone();
                 let kakera_value = extract_kakera_value(&card);
-                // if kakera_value >= SETTINGS
+                if kakera_value >= SETTINGS.sniper.capture_threshold {
+                    let mut sniper = sniper_mutex.lock().await;
+                    let _ = sniper.capture_card(&msg).await;
+                    if !SETTINGS.sniper.roll_after_claim {
+                        break;
+                    }
+                }
             }
         }
         let mut sniper = sniper_mutex.lock().await;
-        sniper.statistics.rolls_remaining = statistics.rolls_remaining;
+        sniper.update_statistics().await;
     }
 }
