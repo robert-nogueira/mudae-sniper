@@ -61,6 +61,8 @@ pub async fn roll_cards(
         if statistics.rolls_remaining == 0 {
             sleep(wait_duration).await;
         }
+
+        let mut captured: bool = false;
         for _ in 0..statistics.rolls_remaining {
             let (tx, rx): (
                 oneshot::Sender<Option<CommandFeedback>>,
@@ -84,11 +86,22 @@ pub async fn roll_cards(
                 statistics.rolls_remaining -= 1;
                 let card = msg.embeds[0].clone();
                 let kakera_value = extract_kakera_value(&card);
-                if kakera_value >= SETTINGS.sniper.capture_threshold {
+                if captured {
+                    if kakera_value >= SETTINGS.sniper.rt_capture_threshold {
+                        let mut sniper = sniper_mutex.lock().await;
+                        if sniper.capture_card(&msg).await.is_ok()
+                            && !SETTINGS.sniper.roll_after_claim
+                        {
+                            break;
+                        }
+                    }
+                } else if kakera_value >= SETTINGS.sniper.capture_threshold {
                     let mut sniper = sniper_mutex.lock().await;
-                    let _ = sniper.capture_card(&msg).await;
-                    if !SETTINGS.sniper.roll_after_claim {
-                        break;
+                    if sniper.capture_card(&msg).await.is_ok() {
+                        captured = true;
+                        if !SETTINGS.sniper.roll_after_claim {
+                            break;
+                        }
                     }
                 }
             }
