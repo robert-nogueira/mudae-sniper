@@ -11,7 +11,7 @@ use crate::{
         COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
         CommandType,
     },
-    entities::statistics::Statistics,
+    entities::{badge::BadgeType, statistics::Statistics},
     settings::SETTINGS,
     snipers::Sniper,
     utils::{REGEX_GET_NUMBERS, get_local_time},
@@ -42,8 +42,13 @@ pub async fn roll_cards(
         let mut running: bool;
         let channel_id: ChannelId;
         let http: Arc<Http>;
+        let has_rt: bool;
         {
             let sniper = sniper_mutex.lock().await;
+            has_rt = sniper
+                .badges
+                .iter()
+                .any(|badge| badge.badge_type == BadgeType::Emerald);
             statistics = sniper.statistics;
             running = sniper.running;
             channel_id = sniper.channel_id;
@@ -86,7 +91,7 @@ pub async fn roll_cards(
                 statistics.rolls_remaining -= 1;
                 let card = msg.embeds[0].clone();
                 let kakera_value = extract_kakera_value(&card);
-                if captured {
+                if captured && has_rt {
                     if kakera_value >= SETTINGS.sniper.rt_capture_threshold {
                         let mut sniper = sniper_mutex.lock().await;
                         if sniper.capture_card(&msg).await.is_ok()
