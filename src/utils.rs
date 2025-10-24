@@ -16,7 +16,7 @@ pub static REGEX_GET_NUMBERS: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\d+(?:[.,]\d{3})*").unwrap());
 
 pub static REGEX_GET_BADGES: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?im)^([^\d·\n]+)\s+\d+\s+·[^\n]*?(\d{1,3}(?:[.,]\d{3})*)\s*:kakera:").unwrap()
+    Regex::new(r"(?im)^(?::[A-Za-z]+\w*:?)*\s*([^\d·\n:]+)\s+([IVXLC\d]+)\s+·[^\n]*?(\d{1,3}(?:[.,]\d{3})*)\s*:kakera:").unwrap()
 });
 
 #[derive(Debug)]
@@ -39,16 +39,13 @@ pub fn extract_badges(text: &str) -> Vec<Badge> {
     let matches = REGEX_GET_BADGES.captures_iter(text);
     for item in matches {
         let level_str: &str = &item[2];
-        let level: u8 = level_str.parse().expect("fail on parse badge level");
-        if level == 0 {
-            continue;
-        }
+        let level: BadgeLevel = BadgeLevel::from_roman_algarism(level_str)
+            .expect("fail on extract badge level");
         let name: &str = &item[1];
         badges.push(Badge {
             badge_type: BadgeType::from_name(name)
                 .expect("regex error on extract badge type"),
-            level: BadgeLevel::from_number(level)
-                .expect("regex error on extract badge level"),
+            level,
         });
     }
     badges
