@@ -14,14 +14,15 @@ use crate::{
     settings::SETTINGS,
     snipers::{SNIPERS, Sniper},
     tasks,
-    utils::extract_statistics,
+    utils::{InvalidStatisticsData, extract_badges, extract_statistics},
 };
 
 pub struct Handler {}
 
-async fn setup_snipers(ctx: &Context) {
+async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
     let channels = SETTINGS.sniper.channels_ids.clone();
     let mut sniper: Arc<Mutex<Sniper>>;
+
     for channel_id in channels {
         let channel_id: ChannelId = channel_id.into();
         let (tx, rx): (
@@ -41,39 +42,56 @@ async fn setup_snipers(ctx: &Context) {
             })
             .unwrap();
         if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
-            let statistics = extract_statistics(&msg.content);
-            match statistics {
-                Ok(statistics) => {
-                    sniper = Arc::new(Mutex::new(Sniper::new(
-                        channel_id,
-                        SETTINGS.sniper.guild_id.into(),
-                        Arc::clone(&ctx.http),
+            let statistics = extract_statistics(&msg.content)?;
+            let collector = COMMAND_SCHEDULER
+                .default_message_collector(&ctx.shard, channel_id);
+            let (tx, rx): (
+                oneshot::Sender<Option<CommandFeedback>>,
+                oneshot::Receiver<Option<CommandFeedback>>,
+            ) = oneshot::channel();
+            COMMAND_SCHEDULER
+                .sender()
+                .send(CommandContext {
+                    command_type: CommandType::Kakera,
+                    collector: CollectorType::Msg(collector),
+                    http: ctx.http.clone(),
+                    target_channel: channel_id,
+                    result_tx: tx,
+                })
+                .unwrap();
+
+            if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
+                let badges = extract_badges(
+                    &msg.embeds[0].description.clone().unwrap(),
+                );
+                sniper = Arc::new(Mutex::new(Sniper::new(
+                    channel_id,
+                    SETTINGS.sniper.guild_id.into(),
+                    Arc::clone(&ctx.http),
+                    ctx.shard.clone(),
+                    statistics,
+                    badges,
+                )));
+                SNIPERS.insert(channel_id, Arc::clone(&sniper));
+                for entry in SNIPERS.iter() {
+                    let sniper = entry.value();
+                    tokio::spawn(tasks::daily_claimer_task(
+                        Arc::clone(sniper),
                         ctx.shard.clone(),
-                        statistics,
-                    )));
-                    SNIPERS.insert(channel_id, Arc::clone(&sniper));
+                    ));
+                    tokio::spawn(tasks::daily_kakera_claimer_task(
+                        Arc::clone(sniper),
+                        ctx.shard.clone(),
+                    ));
+                    tokio::spawn(tasks::roll_cards(
+                        Arc::clone(sniper),
+                        ctx.shard.clone(),
+                    ));
                 }
-                Err(_) => {
-                    msg.react(&ctx, '❌').await.unwrap();
-                }
-            };
-            for entry in SNIPERS.iter() {
-                let sniper = entry.value();
-                tokio::spawn(tasks::daily_claimer_task(
-                    Arc::clone(sniper),
-                    ctx.shard.clone(),
-                ));
-                tokio::spawn(tasks::daily_kakera_claimer_task(
-                    Arc::clone(sniper),
-                    ctx.shard.clone(),
-                ));
-                tokio::spawn(tasks::roll_cards(
-                    Arc::clone(sniper),
-                    ctx.shard.clone(),
-                ));
             }
         };
     }
+    Ok(())
 }
 
 #[async_trait]
@@ -83,7 +101,7 @@ impl EventHandler for Handler {
             && msg.content.as_str() == "!start"
         {
             msg.delete(&ctx.http).await.unwrap();
-            setup_snipers(&ctx).await;
+            setup_snipers(&ctx).await.expect("error on setup snipers");
         };
         if !SETTINGS
             .sniper

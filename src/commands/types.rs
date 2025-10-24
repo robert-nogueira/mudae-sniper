@@ -37,6 +37,7 @@ pub enum CommandType {
     DailyKakera,
     Roll(RollType),
     Tu,
+    Kakera,
 }
 
 impl fmt::Display for CommandType {
@@ -54,6 +55,7 @@ impl fmt::Display for CommandType {
                 RollType::Hg => write!(f, "{}hg", prefix),
             },
             CommandType::Tu => write!(f, "{}tu", prefix),
+            CommandType::Kakera => write!(f, "{}k", prefix),
         }
     }
 }
