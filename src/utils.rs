@@ -61,7 +61,6 @@ pub fn extract_statistics(
         if arr[0] == 0 && arr[1] == 0 {
             return Duration::seconds(0);
         }
-        println!("{:?}", arr);
         Duration::hours(arr[1] as i64) + Duration::minutes(arr[0] as i64)
     }
 
