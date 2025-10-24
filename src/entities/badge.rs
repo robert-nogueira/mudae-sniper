@@ -37,6 +37,20 @@ pub struct Badge {
     pub badge_type: BadgeType,
 }
 
+impl BadgeType {
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name.to_lowercase().as_str() {
+            "bronze" => Some(Self::Bronze),
+            "silver" => Some(Self::Silver),
+            "gold" => Some(Self::Gold),
+            "sapphire" => Some(Self::Sapphire),
+            "ruby" => Some(Self::Ruby),
+            "emerald" => Some(Self::Emerald),
+            _ => None,
+        }
+    }
+}
+
 impl BadgeLevel {
     pub fn next_level(&self) -> Option<BadgeLevel> {
         match self {
