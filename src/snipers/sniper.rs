@@ -5,6 +5,7 @@ use crate::commands::{
     COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
     CommandType,
 };
+use crate::entities::badge::Badge;
 use crate::entities::kakera::Kakera;
 use crate::entities::statistics::Statistics;
 use crate::settings::SETTINGS;
@@ -36,6 +37,7 @@ pub struct Sniper {
     pub http: Arc<Http>,
     pub shard: ShardMessenger,
     pub statistics: Statistics,
+    pub badges: Vec<Badge>,
 }
 
 impl Sniper {
@@ -45,6 +47,7 @@ impl Sniper {
         http: Arc<Http>,
         shard: ShardMessenger,
         statistics: Statistics,
+        badges: Vec<Badge>,
     ) -> Sniper {
         Sniper {
             channel_id,
@@ -53,6 +56,7 @@ impl Sniper {
             http,
             shard,
             statistics,
+            badges,
         }
     }
 
