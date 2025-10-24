@@ -70,6 +70,16 @@ impl BadgeLevel {
         }
     }
 
+    pub fn from_number(level: u8) -> Option<Self> {
+        match level {
+            1 => Some(Self::One),
+            2 => Some(Self::Two),
+            3 => Some(Self::Three),
+            4 => Some(Self::Four),
+            _ => None,
+        }
+    }
+
     pub fn as_u8(&self) -> u8 {
         match self {
             BadgeLevel::One => 1,
