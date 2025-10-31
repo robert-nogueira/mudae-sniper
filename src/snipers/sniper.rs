@@ -54,7 +54,7 @@ impl Sniper {
         Sniper {
             instance_id: channel_id,
             guild_id,
-            running: true,
+            running: false,
             http,
             shard,
             statistics,

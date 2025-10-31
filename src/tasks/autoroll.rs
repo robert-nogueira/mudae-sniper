@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration as TimeDuration};
 
-use log::info;
+use log::{debug, info};
 use serenity_self::all::{ChannelId, Embed, ShardMessenger};
 use tokio::{
     sync::{Mutex, oneshot},
@@ -14,7 +14,7 @@ use crate::{
     },
     entities::badge::BadgeType,
     settings::SETTINGS,
-    snipers::Sniper,
+    snipers::{SNIPERS, Sniper},
     utils::{REGEX_GET_NUMBERS, get_local_time},
 };
 
@@ -38,8 +38,10 @@ pub async fn roll_cards(
     shard: ShardMessenger,
 ) {
     const CHECK_INTERVAL: TimeDuration = TimeDuration::from_secs(60);
-
-    let (channel_id, http, has_rt) = {
+    {
+        println!("{}", SNIPERS.len());
+    }
+    let (instance_name, instance_id, http, has_rt) = {
         let sniper = sniper_mutex.lock().await;
         info!(
             target: "mudae_sniper",
@@ -50,7 +52,12 @@ pub async fn roll_cards(
             .badges
             .iter()
             .any(|badge| badge.badge_type == BadgeType::Emerald);
-        (sniper.instance_id, sniper.http.clone(), has_rt)
+        (
+            sniper.instance_name.clone(),
+            sniper.instance_id,
+            sniper.http.clone(),
+            has_rt,
+        )
     };
     loop {
         let mut statistics;
@@ -62,6 +69,11 @@ pub async fn roll_cards(
         }
 
         while !running {
+            debug!(
+            target: "mudae_sniper",
+            instance:? = instance_name;
+            "🕙 task auto_roll: instance is stopped, trying task again after {CHECK_INTERVAL:?}"
+            );
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
             statistics = sniper.statistics;
@@ -82,7 +94,7 @@ pub async fn roll_cards(
                 oneshot::Receiver<Option<CommandFeedback>>,
             ) = oneshot::channel();
             let collector = COMMAND_SCHEDULER
-                .default_message_collector(&shard, channel_id);
+                .default_message_collector(&shard, instance_id);
             COMMAND_SCHEDULER
                 .sender()
                 .send(CommandContext {
@@ -91,7 +103,7 @@ pub async fn roll_cards(
                     ),
                     collector: CollectorType::Msg(collector),
                     http: http.clone(),
-                    target_channel: channel_id,
+                    target_channel: instance_id,
                     result_tx: tx,
                 })
                 .unwrap();
