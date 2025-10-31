@@ -38,6 +38,7 @@ pub struct Sniper {
     pub shard: ShardMessenger,
     pub statistics: Statistics,
     pub badges: Vec<Badge>,
+    pub channel_name: String,
 }
 
 impl Sniper {
@@ -48,6 +49,7 @@ impl Sniper {
         shard: ShardMessenger,
         statistics: Statistics,
         badges: Vec<Badge>,
+        channel_name: String,
     ) -> Sniper {
         Sniper {
             channel_id,
@@ -57,6 +59,7 @@ impl Sniper {
             shard,
             statistics,
             badges,
+            channel_name,
         }
     }
 

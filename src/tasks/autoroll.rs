@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Duration as TimeDuration};
 
-use serenity_self::all::{ChannelId, Embed, Http, ShardMessenger};
+use log::info;
+use serenity_self::all::{ChannelId, Embed, ShardMessenger};
 use tokio::{
     sync::{Mutex, oneshot},
     time::sleep,
@@ -11,7 +12,7 @@ use crate::{
         COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
         CommandType,
     },
-    entities::{badge::BadgeType, statistics::Statistics},
+    entities::badge::BadgeType,
     settings::SETTINGS,
     snipers::Sniper,
     utils::{REGEX_GET_NUMBERS, get_local_time},
@@ -40,6 +41,12 @@ pub async fn roll_cards(
 
     let (channel_id, http, has_rt) = {
         let sniper = sniper_mutex.lock().await;
+        info!(
+            target: "mudae_sniper",
+            channel_name:? = sniper.channel_name,
+            channel_id = u64::from(sniper.channel_id);
+            "📝 task started: auto_roll"
+        );
         let has_rt = sniper
             .badges
             .iter()

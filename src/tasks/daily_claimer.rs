@@ -2,6 +2,7 @@ use std::{sync::Arc, time::Duration as TimeDuration};
 
 use chrono::{DateTime, Duration};
 use chrono_tz::Tz;
+use log::info;
 use serenity_self::all::{Reaction, ReactionType, ShardMessenger};
 use tokio::{
     sync::{Mutex, oneshot},
@@ -25,6 +26,13 @@ pub async fn daily_claimer_task(
     let mut running: bool;
     {
         let sniper = sniper_mutex.lock().await;
+        // info!(target: "mudae_sniper", "📝 task started: daily_claimer_task ({})", sniper.channel_id);
+        info!(
+            target: "mudae_sniper",
+            channel_name:? = sniper.channel_name,
+            channel_id = u64::from(sniper.channel_id);
+            "📝 task started: daily_claimer"
+        );
         next_daily = sniper.statistics.next_daily;
         running = sniper.running;
     }
