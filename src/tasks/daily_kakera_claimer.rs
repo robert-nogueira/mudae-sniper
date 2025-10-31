@@ -32,7 +32,7 @@ pub async fn daily_kakera_claimer_task(
         let sniper = sniper_mutex.lock().await;
         info!(
             target: "mudae_sniper",
-            channel_name:? = sniper.channel_name;
+            instance:? = sniper.instance_name;
             "📝 task started: daily_kakera_claimer"
         );
         next_dk = sniper.statistics.next_dk;
@@ -57,7 +57,7 @@ pub async fn daily_kakera_claimer_task(
 
         let (channel_id, http) = {
             let sniper = sniper_mutex.lock().await;
-            (sniper.channel_id, sniper.http.clone())
+            (sniper.instance_id, sniper.http.clone())
         };
 
         let (tx, rx) = oneshot::channel();

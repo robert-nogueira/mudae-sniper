@@ -21,25 +21,25 @@ use crate::{
 pub struct Handler {}
 
 async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
-    let channels = &SETTINGS.sniper.channels;
+    let channels = &SETTINGS.sniper.instances;
     let mut sniper: Arc<Mutex<Sniper>>;
     let channels_amount = channels.len();
-    for (i, channel_cfg) in SETTINGS.sniper.channels.iter().enumerate() {
+    for (i, instance_cfg) in SETTINGS.sniper.instances.iter().enumerate() {
         let index = i + 1;
-        let channel_id: ChannelId = channel_cfg.id.into();
+        let channel_id: ChannelId = instance_cfg.id.into();
         let (tx, rx): (
             oneshot::Sender<Option<CommandFeedback>>,
             oneshot::Receiver<Option<CommandFeedback>>,
         ) = oneshot::channel();
         let collector = COMMAND_SCHEDULER
-            .default_message_collector(&ctx.shard, channel_cfg.id.into());
+            .default_message_collector(&ctx.shard, instance_cfg.id.into());
         COMMAND_SCHEDULER
             .sender()
             .send(CommandContext {
                 command_type: CommandType::Tu,
                 collector: CollectorType::Msg(collector),
                 http: ctx.http.clone(),
-                target_channel: channel_cfg.id.into(),
+                target_channel: instance_cfg.id.into(),
                 result_tx: tx,
             })
             .unwrap();
@@ -73,15 +73,15 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                     ctx.shard.clone(),
                     statistics,
                     badges,
-                    channel_cfg.name.clone(),
+                    instance_cfg.name.clone(),
                 )));
                 SNIPERS.insert(channel_id, Arc::clone(&sniper));
                 info!(
                     target: "mudae_sniper",
-                channel_name:? = channel_cfg.name,
-                channel_id = u64::from(channel_id);
-                "⚙️ sniper for channel configured {index}/{}",
-                channels_amount
+                    instance_name:? = instance_cfg.name,
+                    instance_id = u64::from(channel_id);
+                    "⚙️ sniper for channel configured {index}/{}",
+                    channels_amount
                 );
                 for entry in SNIPERS.iter() {
                     let sniper = entry.value();
@@ -120,7 +120,7 @@ impl EventHandler for Handler {
         };
         let chan_id: u64 = msg.channel_id.into();
 
-        if !SETTINGS.sniper.channels.iter().any(|c| c.id == chan_id)
+        if !SETTINGS.sniper.instances.iter().any(|c| c.id == chan_id)
             || msg.author.id != 432610292342587392
         {
             return;

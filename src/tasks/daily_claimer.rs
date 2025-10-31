@@ -29,8 +29,8 @@ pub async fn daily_claimer_task(
         // info!(target: "mudae_sniper", "📝 task started: daily_claimer_task ({})", sniper.channel_id);
         info!(
             target: "mudae_sniper",
-            channel_name:? = sniper.channel_name;
-        "📝 task started: daily_claimer"
+            instance:? = sniper.instance_name;
+            "📝 task started: daily_claimer"
         );
         next_daily = sniper.statistics.next_daily;
         running = sniper.running;
@@ -53,7 +53,7 @@ pub async fn daily_claimer_task(
         sleep(wait_duration).await;
         let (channel_id, http) = {
             let sniper = sniper_mutex.lock().await;
-            (sniper.channel_id, sniper.http.clone())
+            (sniper.instance_id, sniper.http.clone())
         };
 
         let (tx, rx) = oneshot::channel();
