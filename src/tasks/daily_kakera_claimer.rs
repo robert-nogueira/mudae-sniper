@@ -32,7 +32,7 @@ pub async fn daily_kakera_claimer_task(
         let sniper = sniper_mutex.lock().await;
         info!(
             target: "mudae_sniper",
-            instance:? = sniper.instance_name;
+            instance:? = sniper.instance.name;
             "📝 task started: daily_kakera_claimer"
         );
         next_dk = sniper.statistics.next_dk;
@@ -55,14 +55,14 @@ pub async fn daily_kakera_claimer_task(
 
         sleep(wait_duration).await;
 
-        let (channel_id, http) = {
+        let (instance, http) = {
             let sniper = sniper_mutex.lock().await;
-            (sniper.instance_id, sniper.http.clone())
+            (sniper.instance.clone(), sniper.http.clone())
         };
 
         let (tx, rx) = oneshot::channel();
         let collector = COMMAND_SCHEDULER
-            .default_message_collector(&shard, channel_id)
+            .default_message_collector(&shard, instance.channel_id)
             .filter(move |m| REGEX_GET_NUMBERS.is_match(&m.content));
         COMMAND_SCHEDULER
             .sender()
@@ -70,7 +70,7 @@ pub async fn daily_kakera_claimer_task(
                 command_type: CommandType::DailyKakera,
                 collector: CollectorType::Msg(collector),
                 http: http.clone(),
-                target_channel: channel_id,
+                target_instance: instance,
                 result_tx: tx,
             })
             .unwrap();

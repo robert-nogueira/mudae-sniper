@@ -26,10 +26,9 @@ pub async fn daily_claimer_task(
     let mut running: bool;
     {
         let sniper = sniper_mutex.lock().await;
-        // info!(target: "mudae_sniper", "📝 task started: daily_claimer_task ({})", sniper.channel_id);
         info!(
             target: "mudae_sniper",
-            instance:? = sniper.instance_name;
+            instance:? = sniper.instance.name;
             "📝 task started: daily_claimer"
         );
         next_daily = sniper.statistics.next_daily;
@@ -51,14 +50,14 @@ pub async fn daily_claimer_task(
             .unwrap_or(TimeDuration::ZERO);
 
         sleep(wait_duration).await;
-        let (channel_id, http) = {
+        let (instance, http) = {
             let sniper = sniper_mutex.lock().await;
-            (sniper.instance_id, sniper.http.clone())
+            (sniper.instance.clone(), sniper.http.clone())
         };
 
         let (tx, rx) = oneshot::channel();
         let collector = COMMAND_SCHEDULER
-            .default_reaction_collector(&shard, channel_id)
+            .default_reaction_collector(&shard, instance.channel_id)
             .filter(move |r: &Reaction| match &r.emoji {
                 ReactionType::Unicode(unicode) => unicode == "✅",
                 _ => false,
@@ -69,7 +68,7 @@ pub async fn daily_claimer_task(
                 command_type: CommandType::Daily,
                 collector: CollectorType::React(collector),
                 http: http.clone(),
-                target_channel: channel_id,
+                target_instance: instance,
                 result_tx: tx,
             })
             .unwrap();
