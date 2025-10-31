@@ -53,7 +53,7 @@ impl Sniper {
     ) -> Sniper {
         Sniper {
             guild_id,
-            running: false,
+            running: true,
             http,
             shard,
             statistics,
@@ -74,7 +74,7 @@ impl Sniper {
     }
 
     pub fn statistics_copy(&self) -> Statistics {
-        self.statistics.clone()
+        self.statistics
     }
 
     pub fn statistics_ref(&self) -> &Statistics {
