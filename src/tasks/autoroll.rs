@@ -37,29 +37,31 @@ pub async fn roll_cards(
     shard: ShardMessenger,
 ) {
     const CHECK_INTERVAL: TimeDuration = TimeDuration::from_secs(60);
+
+    let (channel_id, http, has_rt) = {
+        let sniper = sniper_mutex.lock().await;
+        let has_rt = sniper
+            .badges
+            .iter()
+            .any(|badge| badge.badge_type == BadgeType::Emerald);
+        (sniper.channel_id, sniper.http.clone(), has_rt)
+    };
     loop {
-        let mut statistics: Statistics;
-        let mut running: bool;
-        let channel_id: ChannelId;
-        let http: Arc<Http>;
-        let has_rt: bool;
+        let mut statistics;
+        let mut running;
         {
             let sniper = sniper_mutex.lock().await;
-            has_rt = sniper
-                .badges
-                .iter()
-                .any(|badge| badge.badge_type == BadgeType::Emerald);
             statistics = sniper.statistics;
             running = sniper.running;
-            channel_id = sniper.channel_id;
-            http = sniper.http.clone();
         }
+
         while !running {
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
             statistics = sniper.statistics;
             running = sniper.running;
         }
+
         let wait_duration = (statistics.next_rolls - get_local_time())
             .to_std()
             .unwrap_or(TimeDuration::ZERO);
