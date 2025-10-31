@@ -1,5 +1,6 @@
 use super::context::CommandContext;
 use super::{CollectorType, CommandFeedback};
+use log::{debug, info};
 use serenity_self::all::{
     ChannelId, MessageCollector, ReactionCollector, ShardMessenger,
 };
@@ -52,6 +53,10 @@ impl CommandScheduler {
     }
 
     pub fn start(self: Arc<Self>) {
+        info!(
+            target: "mudae_sniper",
+            "⏰ command scheduler started"
+        );
         let this = self.clone();
         tokio::spawn(async move {
             while let Some(next) = {
@@ -67,6 +72,11 @@ impl CommandScheduler {
 
 impl CommandScheduler {
     pub async fn task_execute(&self, ctx: CommandContext) {
+        debug!(
+            target: "mudae_sniper",
+            instance_id:? = ctx.target_channel;
+            "⏰ command_scheduled: {}", ctx.command_type
+        );
         ctx.target_channel
             .say(&ctx.http, ctx.command_type.to_string())
             .await
