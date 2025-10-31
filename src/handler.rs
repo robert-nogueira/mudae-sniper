@@ -21,25 +21,25 @@ use crate::{
 pub struct Handler {}
 
 async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
-    let channels = SETTINGS.sniper.channels_ids.clone();
+    let channels = &SETTINGS.sniper.channels;
     let mut sniper: Arc<Mutex<Sniper>>;
     let channels_amount = channels.len();
-    for (i, channel_id) in channels.iter().enumerate() {
+    for (i, channel_cfg) in SETTINGS.sniper.channels.iter().enumerate() {
         let index = i + 1;
-        let channel_id: ChannelId = (*channel_id).into();
+        let channel_id: ChannelId = channel_cfg.id.into();
         let (tx, rx): (
             oneshot::Sender<Option<CommandFeedback>>,
             oneshot::Receiver<Option<CommandFeedback>>,
         ) = oneshot::channel();
         let collector = COMMAND_SCHEDULER
-            .default_message_collector(&ctx.shard, channel_id);
+            .default_message_collector(&ctx.shard, channel_cfg.id.into());
         COMMAND_SCHEDULER
             .sender()
             .send(CommandContext {
                 command_type: CommandType::Tu,
                 collector: CollectorType::Msg(collector),
                 http: ctx.http.clone(),
-                target_channel: channel_id,
+                target_channel: channel_cfg.id.into(),
                 result_tx: tx,
             })
             .unwrap();
@@ -66,8 +66,6 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                 let badges = extract_badges(
                     &msg.embeds[0].description.clone().unwrap(),
                 );
-                let channel_name =
-                    channel_id.name(ctx.http.clone()).await.unwrap();
                 sniper = Arc::new(Mutex::new(Sniper::new(
                     channel_id,
                     SETTINGS.sniper.guild_id.into(),
@@ -75,16 +73,16 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                     ctx.shard.clone(),
                     statistics,
                     badges,
-                    channel_name.to_string(),
+                    channel_cfg.name.clone(),
                 )));
                 SNIPERS.insert(channel_id, Arc::clone(&sniper));
                 info!(
-                        target: "mudae_sniper",
-                channel_name:? = channel_name,
+                    target: "mudae_sniper",
+                channel_name:? = channel_cfg.name,
                 channel_id = u64::from(channel_id);
                 "⚙️ sniper for channel configured {index}/{}",
                 channels_amount
-                    );
+                );
                 for entry in SNIPERS.iter() {
                     let sniper = entry.value();
                     tokio::spawn(tasks::daily_claimer_task(
@@ -120,10 +118,9 @@ impl EventHandler for Handler {
             msg.delete(&ctx.http).await.unwrap();
             setup_snipers(&ctx).await.expect("error on setup snipers");
         };
-        if !SETTINGS
-            .sniper
-            .channels_ids
-            .contains(&msg.channel_id.into())
+        let chan_id: u64 = msg.channel_id.into();
+
+        if !SETTINGS.sniper.channels.iter().any(|c| c.id == chan_id)
             || msg.author.id != 432610292342587392
         {
             return;
