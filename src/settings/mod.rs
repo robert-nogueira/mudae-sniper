@@ -8,9 +8,14 @@ use chrono_tz::Tz;
 use client_config::ClientSettings;
 use config::{Config, ConfigError};
 use dotenv::dotenv;
+use log::LevelFilter;
 use mudae_config::MudaeSettings;
 use serde::Deserialize;
 use sniper_confg::SniperSettings;
+
+fn default_log_level_value() -> LevelFilter {
+    LevelFilter::Info
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
@@ -18,6 +23,8 @@ pub struct Settings {
     pub sniper: SniperSettings,
     pub mudae: MudaeSettings,
     pub timezone: Tz,
+    #[serde(default = "default_log_level_value")]
+    pub log_level: LevelFilter,
 }
 
 impl Settings {
