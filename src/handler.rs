@@ -83,23 +83,20 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                     "⚙️ sniper for channel configured {index}/{}",
                     channels_amount
                 );
-                for entry in SNIPERS.iter() {
-                    let sniper = entry.value();
-                    tokio::spawn(tasks::daily_claimer_task(
-                        Arc::clone(sniper),
-                        ctx.shard.clone(),
-                    ));
-                    tokio::spawn(tasks::daily_kakera_claimer_task(
-                        Arc::clone(sniper),
-                        ctx.shard.clone(),
-                    ));
-                    tokio::spawn(tasks::roll_cards(
-                        Arc::clone(sniper),
-                        ctx.shard.clone(),
-                    ));
-                }
             }
         };
+    }
+    for entry in SNIPERS.iter() {
+        let sniper = entry.value();
+        tokio::spawn(tasks::daily_claimer_task(
+            Arc::clone(sniper),
+            ctx.shard.clone(),
+        ));
+        tokio::spawn(tasks::daily_kakera_claimer_task(
+            Arc::clone(sniper),
+            ctx.shard.clone(),
+        ));
+        tokio::spawn(tasks::roll_cards(Arc::clone(sniper), ctx.shard.clone()));
     }
     info!(target: "mudae_sniper",  "✅ snipers setup complete.");
     Ok(())
