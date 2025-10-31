@@ -32,13 +32,13 @@ macro_rules! some_or_continue {
 
 pub struct Sniper {
     pub guild_id: GuildId,
-    pub channel_id: ChannelId,
+    pub instance_id: ChannelId,
     pub running: bool,
     pub http: Arc<Http>,
     pub shard: ShardMessenger,
     pub statistics: Statistics,
     pub badges: Vec<Badge>,
-    pub channel_name: String,
+    pub instance_name: String,
 }
 
 impl Sniper {
@@ -49,17 +49,17 @@ impl Sniper {
         shard: ShardMessenger,
         statistics: Statistics,
         badges: Vec<Badge>,
-        channel_name: String,
+        instance_name: String,
     ) -> Sniper {
         Sniper {
-            channel_id,
+            instance_id: channel_id,
             guild_id,
             running: true,
             http,
             shard,
             statistics,
             badges,
-            channel_name,
+            instance_name,
         }
     }
 
@@ -73,7 +73,7 @@ impl Sniper {
         let body = json!({
             "type" : 3,
             "guild_id": self.guild_id.to_string(),
-            "channel_id": self.channel_id.to_string(),
+            "channel_id": self.instance_id.to_string(),
             "message_id": message_id.to_string(),
             "application_id": "432610292342587392",
             "session_id": session_id,
@@ -94,14 +94,14 @@ impl Sniper {
             oneshot::Receiver<Option<CommandFeedback>>,
         ) = oneshot::channel();
         let collector = COMMAND_SCHEDULER
-            .default_message_collector(&self.shard, self.channel_id);
+            .default_message_collector(&self.shard, self.instance_id);
         COMMAND_SCHEDULER
             .sender()
             .send(CommandContext {
                 command_type: CommandType::Tu,
                 collector: CollectorType::Msg(collector),
                 http: self.http.clone(),
-                target_channel: self.channel_id,
+                target_channel: self.instance_id,
                 result_tx: tx,
             })
             .unwrap();
@@ -140,7 +140,7 @@ impl Sniper {
         let mut kakeras_sniped: Vec<Kakera> = vec![];
 
         if message.author.id != 432610292342587392
-            || message.channel_id != self.channel_id
+            || message.channel_id != self.instance_id
             || message.embeds.is_empty()
             || message.embeds[0].description.is_none()
             || message.components.is_empty()

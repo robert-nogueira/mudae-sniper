@@ -43,14 +43,14 @@ pub async fn roll_cards(
         let sniper = sniper_mutex.lock().await;
         info!(
             target: "mudae_sniper",
-            channel_name:? = sniper.channel_name;
-        "📝 task started: auto_roll"
+            instance:? = sniper.instance_name;
+            "📝 task started: auto_roll"
         );
         let has_rt = sniper
             .badges
             .iter()
             .any(|badge| badge.badge_type == BadgeType::Emerald);
-        (sniper.channel_id, sniper.http.clone(), has_rt)
+        (sniper.instance_id, sniper.http.clone(), has_rt)
     };
     loop {
         let mut statistics;

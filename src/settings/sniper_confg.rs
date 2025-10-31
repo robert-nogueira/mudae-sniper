@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct ChannelConfig {
+pub struct InstanceConfig {
     pub name: String,
     pub id: u64,
 }
@@ -9,7 +9,7 @@ pub struct ChannelConfig {
 #[derive(Debug, Deserialize)]
 pub struct SniperSettings {
     pub guild_id: u64,
-    pub channels: Vec<ChannelConfig>,
+    pub instances: Vec<InstanceConfig>,
     pub roll_command: String,
     pub capture_threshold: u32,
     pub roll_after_claim: bool,
