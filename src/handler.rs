@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use log::info;
 use serenity_self::{
     all::{ChannelId, Context, EventHandler, Message},
     async_trait,
@@ -22,9 +23,10 @@ pub struct Handler {}
 async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
     let channels = SETTINGS.sniper.channels_ids.clone();
     let mut sniper: Arc<Mutex<Sniper>>;
-
-    for channel_id in channels {
-        let channel_id: ChannelId = channel_id.into();
+    let channels_amount = channels.len();
+    for (i, channel_id) in channels.iter().enumerate() {
+        let index = i + 1;
+        let channel_id: ChannelId = (*channel_id).into();
         let (tx, rx): (
             oneshot::Sender<Option<CommandFeedback>>,
             oneshot::Receiver<Option<CommandFeedback>>,
@@ -64,6 +66,8 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                 let badges = extract_badges(
                     &msg.embeds[0].description.clone().unwrap(),
                 );
+                let channel_name =
+                    channel_id.name(ctx.http.clone()).await.unwrap();
                 sniper = Arc::new(Mutex::new(Sniper::new(
                     channel_id,
                     SETTINGS.sniper.guild_id.into(),
@@ -71,8 +75,16 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                     ctx.shard.clone(),
                     statistics,
                     badges,
+                    channel_name.to_string(),
                 )));
                 SNIPERS.insert(channel_id, Arc::clone(&sniper));
+                info!(
+                        target: "mudae_sniper",
+                channel_name:? = channel_name,
+                channel_id = u64::from(channel_id);
+                "⚙️ sniper for channel configured {index}/{}",
+                channels_amount
+                    );
                 for entry in SNIPERS.iter() {
                     let sniper = entry.value();
                     tokio::spawn(tasks::daily_claimer_task(
@@ -91,6 +103,7 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
             }
         };
     }
+    info!(target: "mudae_sniper",  "✅ snipers setup complete.");
     Ok(())
 }
 
@@ -100,6 +113,10 @@ impl EventHandler for Handler {
         if msg.author.id == SETTINGS.client.client_id
             && msg.content.as_str() == "!start"
         {
+            info!(
+            target: "mudae_sniper",
+            "Start command detected, setting up snipers..."
+            );
             msg.delete(&ctx.http).await.unwrap();
             setup_snipers(&ctx).await.expect("error on setup snipers");
         };
