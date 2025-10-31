@@ -29,9 +29,8 @@ pub async fn daily_claimer_task(
         // info!(target: "mudae_sniper", "📝 task started: daily_claimer_task ({})", sniper.channel_id);
         info!(
             target: "mudae_sniper",
-            channel_name:? = sniper.channel_name,
-            channel_id = u64::from(sniper.channel_id);
-            "📝 task started: daily_claimer"
+            channel_name:? = sniper.channel_name;
+        "📝 task started: daily_claimer"
         );
         next_daily = sniper.statistics.next_daily;
         running = sniper.running;

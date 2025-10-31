@@ -43,9 +43,8 @@ pub async fn roll_cards(
         let sniper = sniper_mutex.lock().await;
         info!(
             target: "mudae_sniper",
-            channel_name:? = sniper.channel_name,
-            channel_id = u64::from(sniper.channel_id);
-            "📝 task started: auto_roll"
+            channel_name:? = sniper.channel_name;
+        "📝 task started: auto_roll"
         );
         let has_rt = sniper
             .badges
