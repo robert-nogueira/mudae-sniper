@@ -12,6 +12,7 @@ use crate::{
         COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
         CommandType,
     },
+    entities::instance::Instance,
     settings::SETTINGS,
     snipers::{SNIPERS, Sniper},
     tasks,
@@ -25,6 +26,10 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
     let mut sniper: Arc<Mutex<Sniper>>;
     let channels_amount = channels.len();
     for (i, instance_cfg) in SETTINGS.sniper.instances.iter().enumerate() {
+        let instance = Instance {
+            channel_id: instance_cfg.id.into(),
+            name: instance_cfg.name.clone(),
+        };
         let index = i + 1;
         let channel_id: ChannelId = instance_cfg.id.into();
         let (tx, rx): (
@@ -39,7 +44,7 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                 command_type: CommandType::Tu,
                 collector: CollectorType::Msg(collector),
                 http: ctx.http.clone(),
-                target_channel: instance_cfg.id.into(),
+                target_instance: instance.clone(),
                 result_tx: tx,
             })
             .unwrap();
@@ -57,7 +62,7 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                     command_type: CommandType::Kakera,
                     collector: CollectorType::Msg(collector),
                     http: ctx.http.clone(),
-                    target_channel: channel_id,
+                    target_instance: instance.clone(),
                     result_tx: tx,
                 })
                 .unwrap();

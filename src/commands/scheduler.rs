@@ -74,10 +74,12 @@ impl CommandScheduler {
     pub async fn task_execute(&self, ctx: CommandContext) {
         debug!(
             target: "mudae_sniper",
-            instance_id:? = ctx.target_channel;
+            instance:? = ctx.target_instance.name,
+            instance_id = ctx.target_instance.id_as_u64();
             "⏰ command_scheduled: {}", ctx.command_type
         );
-        ctx.target_channel
+        ctx.target_instance
+            .channel_id
             .say(&ctx.http, ctx.command_type.to_string())
             .await
             .expect("fail on send {command:?}");

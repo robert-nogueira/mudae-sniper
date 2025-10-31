@@ -1,6 +1,8 @@
-use serenity_self::all::{ChannelId, Http};
+use serenity_self::all::Http;
 use std::sync::Arc;
 use tokio::sync::oneshot::Sender;
+
+use crate::entities::instance::Instance;
 
 use super::{
     CollectorType,
@@ -11,6 +13,6 @@ pub struct CommandContext {
     pub command_type: CommandType,
     pub result_tx: Sender<Option<CommandFeedback>>,
     pub collector: CollectorType,
-    pub target_channel: ChannelId,
+    pub target_instance: Instance,
     pub http: Arc<Http>,
 }
