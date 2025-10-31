@@ -31,7 +31,7 @@ pub async fn daily_claimer_task(
             instance:? = sniper.instance_ref().name;
             "📝 task started: daily_claimer"
         );
-        next_daily = sniper.statistics.next_daily;
+        next_daily = sniper.statistics_ref().next_daily;
         running = sniper.running;
     }
 
@@ -41,7 +41,7 @@ pub async fn daily_claimer_task(
         while !running {
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
-            next_daily = sniper.statistics.next_daily;
+            next_daily = sniper.statistics_ref().next_daily;
             running = sniper.running;
         }
 
@@ -75,9 +75,8 @@ pub async fn daily_claimer_task(
 
         if let Some(CommandFeedback::React(_)) = rx.await.unwrap() {
             let mut sniper = sniper_mutex.lock().await;
-            sniper.statistics.next_daily =
-                get_local_time() + Duration::hours(20);
-            next_daily = sniper.statistics.next_daily;
+            sniper.update_statistics().await;
+            next_daily = sniper.statistics_ref().next_daily;
             running = sniper.running;
         }
     }

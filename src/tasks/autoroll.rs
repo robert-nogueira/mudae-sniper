@@ -59,7 +59,7 @@ pub async fn roll_cards(
         let mut running;
         {
             let sniper = sniper_mutex.lock().await;
-            statistics = sniper.statistics;
+            statistics = sniper.statistics_copy();
             running = sniper.running;
         }
 
@@ -71,7 +71,7 @@ pub async fn roll_cards(
                 );
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
-            statistics = sniper.statistics;
+            statistics = sniper.statistics_copy();
             running = sniper.running;
         }
 

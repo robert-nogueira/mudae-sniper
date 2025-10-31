@@ -31,11 +31,11 @@ pub async fn daily_kakera_claimer_task(
     {
         let sniper = sniper_mutex.lock().await;
         info!(
-            target: "mudae_sniper",
-            instance:? = sniper.instance_ref().name;
-            "📝 task started: daily_kakera_claimer"
+                target: "mudae_sniper",
+                instance:? = sniper.instance_ref().name;
+                "📝 task started: daily_kakera_claimer"
         );
-        next_dk = sniper.statistics.next_dk;
+        next_dk = sniper.statistics_ref().next_dk;
         running = sniper.running;
     }
 
@@ -45,7 +45,7 @@ pub async fn daily_kakera_claimer_task(
         while !running {
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
-            next_dk = sniper.statistics.next_dk;
+            next_dk = sniper.statistics_ref().next_dk;
             running = sniper.running;
         }
 
@@ -76,16 +76,14 @@ pub async fn daily_kakera_claimer_task(
             .unwrap();
 
         if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
-            let stock_value = REGEX_GET_NUMBERS
+            let _stock_value = REGEX_GET_NUMBERS
                 .find_iter(&msg.content)
                 .next()
                 .and_then(|m| parse_num(m.as_str()));
 
             let mut sniper = sniper_mutex.lock().await;
-            sniper.statistics.kakera_stock =
-                stock_value.unwrap_or(sniper.statistics.kakera_stock);
-            sniper.statistics.next_dk = get_local_time() + Duration::hours(20);
-            next_dk = sniper.statistics.next_dk;
+            sniper.update_statistics().await;
+            next_dk = sniper.statistics_ref().next_dk;
             running = sniper.running;
         }
     }
