@@ -41,7 +41,7 @@ impl log::Log for Logger {
                 value: Value<'kvs>,
             ) -> Result<(), log::kv::Error> {
                 print!(
-                    "\n \x1b[3m{}{}={}{}\x1b[0m",
+                    " \x1b[3m{}{}={}{}\x1b[0m",
                     self.color, key, value, self.end_color
                 );
                 Ok(())
