@@ -89,7 +89,8 @@ pub async fn roll_cards(
                 oneshot::Receiver<Option<CommandFeedback>>,
             ) = oneshot::channel();
             let collector = COMMAND_SCHEDULER
-                .default_message_collector(&shard, instance.channel_id);
+                .default_message_collector(&shard, instance.channel_id)
+                .filter(|msg| !msg.embeds.is_empty());
             COMMAND_SCHEDULER
                 .sender()
                 .send(CommandContext {
