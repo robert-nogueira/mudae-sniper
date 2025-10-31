@@ -32,7 +32,7 @@ macro_rules! some_or_continue {
 }
 
 pub struct Sniper {
-    pub instance: Instance,
+    instance: Instance,
     pub guild_id: GuildId,
     pub running: bool,
     pub http: Arc<Http>,
@@ -63,6 +63,14 @@ impl Sniper {
                 name: instance_name,
             },
         }
+    }
+
+    pub fn instance_copy(&self) -> Instance {
+        self.instance.clone()
+    }
+
+    pub fn instance_ref(&self) -> &Instance {
+        &self.instance
     }
 
     async fn click_button(&self, custom_id: &str, message_id: MessageId) {

@@ -28,7 +28,7 @@ pub async fn daily_claimer_task(
         let sniper = sniper_mutex.lock().await;
         info!(
             target: "mudae_sniper",
-            instance:? = sniper.instance.name;
+            instance:? = sniper.instance_ref().name;
             "📝 task started: daily_claimer"
         );
         next_daily = sniper.statistics.next_daily;
@@ -52,7 +52,7 @@ pub async fn daily_claimer_task(
         sleep(wait_duration).await;
         let (instance, http) = {
             let sniper = sniper_mutex.lock().await;
-            (sniper.instance.clone(), sniper.http.clone())
+            (sniper.instance_copy(), sniper.http.clone())
         };
 
         let (tx, rx) = oneshot::channel();
