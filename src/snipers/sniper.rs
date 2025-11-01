@@ -10,7 +10,8 @@ use crate::entities::instance::Instance;
 use crate::entities::kakera::Kakera;
 use crate::entities::statistics::Statistics;
 use crate::settings::SETTINGS;
-use crate::utils::extract_statistics;
+use crate::utils::{InvalidStatisticsData, extract_statistics};
+use log::error;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
@@ -20,7 +21,7 @@ use serenity_self::all::{
 };
 use tokio::sync::oneshot;
 
-use super::errors::CaptureError;
+use super::errors::{CaptureError, UpdateStatisticsError};
 
 macro_rules! some_or_continue {
     ($expr:expr) => {
@@ -106,7 +107,9 @@ impl Sniper {
             .expect("HTTP Error");
     }
 
-    pub async fn update_statistics(&mut self) {
+    pub async fn update_statistics(
+        &mut self,
+    ) -> Result<Statistics, UpdateStatisticsError> {
         let (tx, rx): (
             oneshot::Sender<Option<CommandFeedback>>,
             oneshot::Receiver<Option<CommandFeedback>>,
@@ -124,9 +127,32 @@ impl Sniper {
             })
             .unwrap();
         if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
-            self.statistics = extract_statistics(&msg.content)
-                .expect("error on extract statistics");
+            match extract_statistics(&msg.content) {
+                Ok(statistics) => {
+                    self.statistics = statistics;
+                    return Ok(statistics);
+                }
+                Err(message) => {
+                    error!(
+                    target: "mudae_sniper",
+                    message:? = message;
+                    "Error on update statistics due to a error on extract statistics from message\n!
+                    please verify the error and fix"
+                    );
+                    return Err(UpdateStatisticsError::InvalidStatistics(
+                        message,
+                    ));
+                }
+            };
         }
+        let err = Err(UpdateStatisticsError::MissingCommandFeedback);
+        error!(
+            target: "mudae_sniper",
+            error:? = err;
+            "Error on update statistics due to a missing command feedback!\n
+        please verify the error and fix"
+        );
+        err
     }
 
     pub async fn capture_card(
@@ -150,7 +176,9 @@ impl Sniper {
             _ => return Err(CaptureError::NotAButton(button.clone())),
         };
         self.click_button(&custom_id, message.id).await;
-        self.update_statistics().await;
+        self.update_statistics()
+            .await
+            .expect("Failed on update statistics. Check the logs for details");
         Ok(())
     }
 
