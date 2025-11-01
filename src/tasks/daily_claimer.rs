@@ -75,7 +75,9 @@ pub async fn daily_claimer_task(
 
         if let Some(CommandFeedback::React(_)) = rx.await.unwrap() {
             let mut sniper = sniper_mutex.lock().await;
-            sniper.update_statistics().await;
+            sniper.update_statistics().await.expect(
+                "Failed on update statistics. Check the logs for details",
+            );
             next_daily = sniper.statistics_ref().next_daily;
             running = sniper.running;
         }

@@ -81,7 +81,9 @@ pub async fn daily_kakera_claimer_task(
                 .next()
                 .and_then(|m| parse_num(m.as_str()));
             let mut sniper = sniper_mutex.lock().await;
-            sniper.update_statistics().await;
+            sniper.update_statistics().await.expect(
+                "Failed on update statistics. Check the logs for details",
+            );
             next_dk = sniper.statistics_ref().next_dk;
             running = sniper.running;
             info!(

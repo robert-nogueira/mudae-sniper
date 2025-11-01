@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration as TimeDuration};
 
-use log::{debug, info};
+use log::{debug, error, info};
 use serenity_self::all::{Embed, ShardMessenger};
 use tokio::{
     sync::{Mutex, oneshot},
@@ -128,6 +128,9 @@ pub async fn roll_cards(
             }
         }
         let mut sniper = sniper_mutex.lock().await;
-        sniper.update_statistics().await;
+        sniper
+            .update_statistics()
+            .await
+            .expect("Failed on update statistics. Check the logs for details");
     }
 }
