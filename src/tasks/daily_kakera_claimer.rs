@@ -76,15 +76,19 @@ pub async fn daily_kakera_claimer_task(
             .unwrap();
 
         if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
-            let _stock_value = REGEX_GET_NUMBERS
+            let claimed_kakera = REGEX_GET_NUMBERS
                 .find_iter(&msg.content)
                 .next()
                 .and_then(|m| parse_num(m.as_str()));
-
             let mut sniper = sniper_mutex.lock().await;
             sniper.update_statistics().await;
             next_dk = sniper.statistics_ref().next_dk;
             running = sniper.running;
+            info!(
+            target: "mudae_sniper",
+            instance:? = sniper.instance_ref().name;
+            "✨ claimed kakera: {}", claimed_kakera.unwrap()
+            );
         }
     }
 }
