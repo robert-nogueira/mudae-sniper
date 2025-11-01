@@ -1,6 +1,6 @@
 mod client_config;
 mod mudae_config;
-mod sniper_confg;
+mod sniper_config;
 
 use std::sync::LazyLock;
 
@@ -11,7 +11,7 @@ use dotenv::dotenv;
 use log::LevelFilter;
 use mudae_config::MudaeSettings;
 use serde::Deserialize;
-use sniper_confg::SniperSettings;
+use sniper_config::SniperSettings;
 
 fn default_log_level_value() -> LevelFilter {
     LevelFilter::Info
