@@ -66,9 +66,10 @@ pub async fn roll_cards(
         while !running {
             debug!(
                 target: "mudae_sniper",
-            instance:? = instance.name;
-            "🕙 task auto_roll: instance is stopped, trying task again after {CHECK_INTERVAL:?}"
-                );
+                instance:? = instance.name;
+                "🕙 task auto_roll: instance is stopped, trying task again after {CHECK_INTERVAL:?}"
+
+            );
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
             statistics = sniper.statistics_copy();
@@ -119,6 +120,9 @@ pub async fn roll_cards(
                 } else if kakera_value >= SETTINGS.sniper.capture_threshold {
                     let mut sniper = sniper_mutex.lock().await;
                     if sniper.capture_card(&msg).await.is_ok() {
+                        info!(target: "mudae_sniper",
+			      instance:? = sniper.instance_ref().name; "🃏 Card captured: {:?}",
+                              card.title);
                         captured = true;
                         if !SETTINGS.sniper.roll_after_claim {
                             break;
