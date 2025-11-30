@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration as TimeDuration};
 
-use log::{debug, error, info};
+use log::{debug, info};
 use serenity_self::all::{Embed, ShardMessenger};
 use tokio::{
     sync::{Mutex, oneshot},
@@ -14,7 +14,7 @@ use crate::{
     },
     entities::badge::BadgeType,
     settings::SETTINGS,
-    snipers::{SNIPERS, Sniper},
+    snipers::Sniper,
     utils::{REGEX_GET_NUMBERS, get_local_time},
 };
 
@@ -38,9 +38,6 @@ pub async fn roll_cards(
     shard: ShardMessenger,
 ) {
     const CHECK_INTERVAL: TimeDuration = TimeDuration::from_secs(60);
-    {
-        println!("{}", SNIPERS.len());
-    }
     let (instance, http, has_rt) = {
         let sniper = sniper_mutex.lock().await;
         info!(
@@ -66,7 +63,7 @@ pub async fn roll_cards(
         while !running {
             debug!(
                 target: "mudae_sniper",
-                instance:? = instance.name;
+                instance:? = &instance.name;
                 "🕙 task auto_roll: instance is stopped, trying task again after {CHECK_INTERVAL:?}"
 
             );
@@ -107,13 +104,21 @@ pub async fn roll_cards(
             if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
                 statistics.rolls_remaining -= 1;
                 let card = msg.embeds[0].clone();
+                let card_name = card.author.clone().unwrap().name;
+                debug!(
+                    target: "mudae_sniper",
+                    instance:? = &instance.name;
+                    "🌀 rolled card {card_name:?}",
+                );
                 let kakera_value = extract_kakera_value(&card);
                 if captured && has_rt {
                     if kakera_value >= SETTINGS.sniper.rt_capture_threshold {
                         let mut sniper = sniper_mutex.lock().await;
-                        if sniper.capture_card(&msg).await.is_ok()
-                            && !SETTINGS.sniper.roll_after_claim
+                        if !SETTINGS.sniper.roll_after_claim
+                            && sniper.capture_card(&msg).await.is_ok()
                         {
+                            info!(target: "mudae_sniper",
+				  instance:? = sniper.instance_ref().name; "🃏 Card captured by rt: {card_name:?}");
                             break;
                         }
                     }
@@ -121,8 +126,7 @@ pub async fn roll_cards(
                     let mut sniper = sniper_mutex.lock().await;
                     if sniper.capture_card(&msg).await.is_ok() {
                         info!(target: "mudae_sniper",
-			      instance:? = sniper.instance_ref().name; "🃏 Card captured: {:?}",
-                              card.title);
+			      instance:? = sniper.instance_ref().name; "🃏 Card captured: {card_name:?}");
                         captured = true;
                         if !SETTINGS.sniper.roll_after_claim {
                             break;
