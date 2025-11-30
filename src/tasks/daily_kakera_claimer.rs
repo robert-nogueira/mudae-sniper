@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration as TimeDuration};
 
 use chrono::{DateTime, Duration};
 use chrono_tz::Tz;
-use log::info;
+use log::{debug, info};
 use serenity_self::all::ShardMessenger;
 use tokio::{
     sync::{Mutex, oneshot},
@@ -14,6 +14,7 @@ use crate::{
         COMMAND_SCHEDULER, CollectorType, CommandContext, CommandFeedback,
         CommandType,
     },
+    entities::instance::Instance,
     snipers::Sniper,
     utils::{REGEX_GET_NUMBERS, get_local_time},
 };
@@ -25,15 +26,16 @@ pub async fn daily_kakera_claimer_task(
     fn parse_num(text: &str) -> Option<u32> {
         text.replace(",", "").replace(".", "").parse().ok()
     }
-
+    let instance: Instance;
     let mut next_dk: DateTime<Tz>;
     let mut running: bool;
     {
         let sniper = sniper_mutex.lock().await;
+        instance = sniper.instance_copy();
         info!(
-                target: "mudae_sniper",
-                instance:? = sniper.instance_ref().name;
-                "📝 task started: daily_kakera_claimer"
+            target: "mudae_sniper",
+            instance:? = sniper.instance_ref().name;
+            "📝 task started: daily_kakera_claimer"
         );
         next_dk = sniper.statistics_ref().next_dk;
         running = sniper.running;
@@ -52,12 +54,16 @@ pub async fn daily_kakera_claimer_task(
         let wait_duration = (next_dk - get_local_time())
             .to_std()
             .unwrap_or(TimeDuration::ZERO);
-
+        debug!(
+            target: "mudae_sniper",
+            instance:?  = &instance.name;
+            "🕙 waiting {wait_duration:?} for next daily kakera claim..."
+        );
         sleep(wait_duration).await;
 
-        let (instance, http) = {
+        let http = {
             let sniper = sniper_mutex.lock().await;
-            (sniper.instance_copy(), sniper.http.clone())
+            sniper.http.clone()
         };
 
         let (tx, rx) = oneshot::channel();
@@ -70,7 +76,7 @@ pub async fn daily_kakera_claimer_task(
                 command_type: CommandType::DailyKakera,
                 collector: CollectorType::Msg(collector),
                 http: http.clone(),
-                target_instance: instance,
+                target_instance: instance.clone(),
                 result_tx: tx,
             })
             .unwrap();
@@ -80,17 +86,16 @@ pub async fn daily_kakera_claimer_task(
                 .find_iter(&msg.content)
                 .next()
                 .and_then(|m| parse_num(m.as_str()));
+            info!(
+		target: "mudae_sniper",
+		instance:? = &instance.name;
+		"✨ claimed kakera: {}", claimed_kakera.unwrap());
             let mut sniper = sniper_mutex.lock().await;
             sniper.update_statistics().await.expect(
                 "Failed on update statistics. Check the logs for details",
             );
             next_dk = sniper.statistics_ref().next_dk;
             running = sniper.running;
-            info!(
-            target: "mudae_sniper",
-            instance:? = sniper.instance_ref().name;
-            "✨ claimed kakera: {}", claimed_kakera.unwrap()
-            );
         }
     }
 }

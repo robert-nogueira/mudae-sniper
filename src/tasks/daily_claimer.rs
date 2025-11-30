@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration as TimeDuration};
 
 use chrono::{DateTime, Duration};
 use chrono_tz::Tz;
-use log::info;
+use log::{debug, info};
 use serenity_self::all::{Reaction, ReactionType, ShardMessenger};
 use tokio::{
     sync::{Mutex, oneshot},
@@ -24,8 +24,10 @@ pub async fn daily_claimer_task(
 ) {
     let mut next_daily: DateTime<Tz>;
     let mut running: bool;
+    let instance;
     {
         let sniper = sniper_mutex.lock().await;
+        instance = sniper.instance_copy();
         info!(
             target: "mudae_sniper",
             instance:? = sniper.instance_ref().name;
@@ -48,11 +50,15 @@ pub async fn daily_claimer_task(
         let wait_duration = (next_daily - get_local_time())
             .to_std()
             .unwrap_or(TimeDuration::ZERO);
-
+        debug!(
+            target: "mudae_sniper",
+            instance:?  = &instance.name;
+            "🕙 waiting {wait_duration:?} for next daily claim..."
+        );
         sleep(wait_duration).await;
-        let (instance, http) = {
+        let http = {
             let sniper = sniper_mutex.lock().await;
-            (sniper.instance_copy(), sniper.http.clone())
+            sniper.http.clone()
         };
 
         let (tx, rx) = oneshot::channel();
@@ -68,12 +74,17 @@ pub async fn daily_claimer_task(
                 command_type: CommandType::Daily,
                 collector: CollectorType::React(collector),
                 http: http.clone(),
-                target_instance: instance,
+                target_instance: instance.clone(),
                 result_tx: tx,
             })
             .unwrap();
 
         if let Some(CommandFeedback::React(_)) = rx.await.unwrap() {
+            info!(
+            target: "mudae_sniper",
+            instance:? = &instance.name;
+            "☀️ daily claimed!"
+            );
             let mut sniper = sniper_mutex.lock().await;
             sniper.update_statistics().await.expect(
                 "Failed on update statistics. Check the logs for details",
