@@ -114,9 +114,8 @@ impl EventHandler for Handler {
             && msg.content.as_str() == "!start"
         {
             info!(
-            target: "mudae_sniper",
-            "Start command detected, setting up snipers..."
-            );
+		target: "mudae_sniper",
+		"Start command detected, setting up snipers...");
             msg.delete(&ctx.http).await.unwrap();
             setup_snipers(&ctx).await.expect("error on setup snipers");
         };
