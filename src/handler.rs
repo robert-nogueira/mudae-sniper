@@ -5,7 +5,7 @@ use serenity_self::{
     all::{ChannelId, Context, EventHandler, Message},
     async_trait,
 };
-use tokio::sync::{Mutex, oneshot};
+use tokio::sync::{RwLock, oneshot};
 
 use crate::{
     commands::{
@@ -26,7 +26,7 @@ pub struct Handler {}
 
 async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
     let channels = &SETTINGS.sniper.instances;
-    let mut sniper: Arc<Mutex<Sniper>>;
+    let mut sniper: Arc<RwLock<Sniper>>;
     let channels_amount = channels.len();
     for (i, instance_cfg) in SETTINGS.sniper.instances.iter().enumerate() {
         let instance = Instance {
@@ -75,7 +75,7 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                 let badges = extract_badges(
                     &msg.embeds[0].description.clone().unwrap(),
                 );
-                sniper = Arc::new(Mutex::new(Sniper::new(
+                sniper = Arc::new(RwLock::new(Sniper::new(
                     SETTINGS.sniper.guild_id.into(),
                     Arc::clone(&ctx.http),
                     ctx.shard.clone(),
@@ -131,16 +131,17 @@ impl EventHandler for Handler {
             return;
         }
 
-        let Some(sniper) = SNIPERS.get(&msg.channel_id) else {
+        let Some(sniper_rwlock) = SNIPERS.get(&msg.channel_id) else {
             return;
         };
+        let (stats, instance) = {
+            let sniper = sniper_rwlock.read().await;
+            (sniper.statistics_copy(), sniper.instance_copy())
+        };
 
-        let mut sniper = sniper.lock().await;
-        let stats = sniper.statistics_copy();
-        let instance = sniper.instance_copy();
         let now = get_local_time();
         if stats.next_kakera_react <= now {
-            sniper.snipe_kakeras(&msg).await;
+            sniper_rwlock.write().await.snipe_kakeras(&msg).await;
         }
         let Some(kakera_value) = extract_kakera_value(&msg.embeds[0]) else {
             return;
@@ -148,7 +149,8 @@ impl EventHandler for Handler {
 
         if kakera_value >= SETTINGS.sniper.capture_threshold
             && stats.can_claim
-            && let Err(error) = sniper.capture_card(&msg).await
+            && let Err(error) =
+                sniper_rwlock.write().await.capture_card(&msg).await
         {
             match error {
                 CaptureError::InvalidButton(button) => {

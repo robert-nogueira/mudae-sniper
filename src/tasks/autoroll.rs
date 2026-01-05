@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration as TimeDuration};
 use log::{debug, info};
 use serenity_self::all::ShardMessenger;
 use tokio::{
-    sync::{Mutex, oneshot},
+    sync::{RwLock, oneshot},
     time::sleep,
 };
 
@@ -19,12 +19,11 @@ use crate::{
 };
 
 pub async fn roll_cards(
-    sniper_mutex: Arc<Mutex<Sniper>>,
+    sniper_rwlock: Arc<RwLock<Sniper>>,
     shard: ShardMessenger,
 ) {
-    const CHECK_INTERVAL: TimeDuration = TimeDuration::from_secs(60);
     let (instance, http, _has_rt) = {
-        let sniper = sniper_mutex.lock().await;
+        let sniper = sniper_rwlock.read().await;
         info!(
             target: "mudae_sniper",
             instance:? = sniper.instance_ref().name;
@@ -36,25 +35,18 @@ pub async fn roll_cards(
             .any(|badge| badge.badge_type == BadgeType::Emerald);
         (sniper.instance_copy(), sniper.http.clone(), has_rt)
     };
+
+    const CHECK_INTERVAL: TimeDuration = TimeDuration::from_secs(60);
     loop {
-        let mut statistics;
-        let mut running;
-        {
-            let sniper = sniper_mutex.lock().await;
-            statistics = sniper.statistics_copy();
-            running = sniper.running;
-        }
-        while !running {
+        while !sniper_rwlock.read().await.running {
             debug!(
                 target: "mudae_sniper",
                 instance:? = &instance.name;
                 "🕙 task auto_roll: instance is stopped, trying task again after {CHECK_INTERVAL:?}"
             );
             sleep(CHECK_INTERVAL).await;
-            let sniper = sniper_mutex.lock().await;
-            statistics = sniper.statistics_copy();
-            running = sniper.running;
         }
+        let mut statistics = sniper_rwlock.read().await.statistics_copy();
 
         let should_wait = if !instance.roll_after_claim {
             !statistics.can_claim || statistics.rolls_remaining == 0
@@ -87,8 +79,7 @@ pub async fn roll_cards(
                 );
 
             sleep(wait_duration).await;
-            let sniper = sniper_mutex.lock().await;
-            statistics = sniper.statistics_copy();
+            statistics = sniper_rwlock.read().await.statistics_copy();
         }
 
         debug!(
@@ -140,12 +131,12 @@ pub async fn roll_cards(
             "⏳ waiting {} until next_rolls",
             fmt_duration_from_now(statistics.next_rolls, now)
         );
-        {
-            let mut sniper = sniper_mutex.lock().await;
-            sniper.update_statistics().await.expect(
-                "Failed on update statistics. Check the logs for details",
-            );
-        }
+        sniper_rwlock
+            .write()
+            .await
+            .update_statistics()
+            .await
+            .expect("Failed on update statistics. Check the logs for details");
         sleep(wait_duration).await;
     }
 }

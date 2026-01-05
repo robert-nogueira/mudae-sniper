@@ -10,14 +10,14 @@ use crate::entities::instance::Instance;
 use crate::entities::kakera::Kakera;
 use crate::entities::statistics::Statistics;
 use crate::settings::SETTINGS;
-use crate::utils::{InvalidStatisticsData, extract_statistics};
+use crate::utils::extract_statistics;
 use log::error;
 use reqwest::Client;
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
 use serenity_self::all::{
-    ActionRowComponent, ButtonKind, ChannelId, GuildId, Http, Message,
-    MessageId, ShardMessenger,
+    ActionRowComponent, ButtonKind, GuildId, Http, Message, MessageId,
+    ShardMessenger,
 };
 use tokio::sync::oneshot;
 
