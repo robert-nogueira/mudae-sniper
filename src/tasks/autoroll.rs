@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration as TimeDuration};
 
 use log::{debug, info};
-use serenity_self::all::{Embed, ShardMessenger};
+use serenity_self::all::ShardMessenger;
 use tokio::{
     sync::{Mutex, oneshot},
     time::sleep,
@@ -15,30 +15,15 @@ use crate::{
     entities::badge::BadgeType,
     settings::SETTINGS,
     snipers::Sniper,
-    utils::{REGEX_GET_NUMBERS, get_local_time},
+    utils::{fmt_duration_from_now, get_local_time},
 };
-
-fn extract_kakera_value(embed: &Embed) -> u32 {
-    let desc = embed
-        .description
-        .clone()
-        .expect("no description to extract kakera value");
-    let last_line = desc.split("\n").last().expect("invalid card description");
-    let value_str = REGEX_GET_NUMBERS
-        .find(last_line)
-        .expect("kakera value not find in description");
-    value_str
-        .as_str()
-        .parse::<u32>()
-        .expect("fail on parse kakera value")
-}
 
 pub async fn roll_cards(
     sniper_mutex: Arc<Mutex<Sniper>>,
     shard: ShardMessenger,
 ) {
     const CHECK_INTERVAL: TimeDuration = TimeDuration::from_secs(60);
-    let (instance, http, has_rt) = {
+    let (instance, http, _has_rt) = {
         let sniper = sniper_mutex.lock().await;
         info!(
             target: "mudae_sniper",
@@ -59,13 +44,11 @@ pub async fn roll_cards(
             statistics = sniper.statistics_copy();
             running = sniper.running;
         }
-
         while !running {
             debug!(
                 target: "mudae_sniper",
                 instance:? = &instance.name;
                 "🕙 task auto_roll: instance is stopped, trying task again after {CHECK_INTERVAL:?}"
-
             );
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
@@ -73,22 +56,65 @@ pub async fn roll_cards(
             running = sniper.running;
         }
 
-        let wait_duration = (statistics.next_rolls - get_local_time())
-            .to_std()
-            .unwrap_or(TimeDuration::ZERO);
-        if statistics.rolls_remaining == 0 {
+        let should_wait = if !instance.roll_after_claim {
+            !statistics.can_claim || statistics.rolls_remaining == 0
+        } else {
+            statistics.rolls_remaining == 0
+        };
+
+        if should_wait {
+            let now = get_local_time();
+
+            let target_time =
+                if !instance.roll_after_claim && !statistics.can_claim {
+                    statistics.claim_time
+                } else {
+                    statistics.next_rolls
+                };
+
+            let wait_duration =
+                (target_time - now).to_std().unwrap_or(TimeDuration::ZERO);
+
+            debug!(
+            target: "mudae_sniper",
+            instance:? = &instance.name;
+            "⏳ waiting {} until {} (can_claim={}, rolls_remaining={}, strategy={})",
+            fmt_duration_from_now(target_time, now),
+            if !instance.roll_after_claim && !statistics.can_claim { "claim_time" } else { "next_rolls" },
+            statistics.can_claim,
+            statistics.rolls_remaining,
+            if instance.roll_after_claim { "roll_after_claim" } else { "stop_after_claim" }
+                );
+
             sleep(wait_duration).await;
+            let sniper = sniper_mutex.lock().await;
+            statistics = sniper.statistics_copy();
         }
 
-        let mut captured: bool = false;
-        for _ in 0..statistics.rolls_remaining {
-            let (tx, rx): (
+        debug!(
+            target: "mudae_sniper",
+            instance:? = &instance.name;
+            "🎲 rolling {} cards",
+            statistics.rolls_remaining
+        );
+
+        for roll_num in 0..statistics.rolls_remaining {
+            let (tx, _): (
                 oneshot::Sender<Option<CommandFeedback>>,
                 oneshot::Receiver<Option<CommandFeedback>>,
             ) = oneshot::channel();
             let collector = COMMAND_SCHEDULER
                 .default_message_collector(&shard, instance.channel_id)
                 .filter(|msg| !msg.embeds.is_empty());
+
+            debug!(
+                target: "mudae_sniper",
+                instance:? = &instance.name;
+                "🎲 sending roll command {}/{}",
+                roll_num + 1,
+                statistics.rolls_remaining
+            );
+
             COMMAND_SCHEDULER
                 .sender()
                 .send(CommandContext {
@@ -101,44 +127,25 @@ pub async fn roll_cards(
                     result_tx: tx,
                 })
                 .unwrap();
-            if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
-                statistics.rolls_remaining -= 1;
-                let card = msg.embeds[0].clone();
-                let card_name = card.author.clone().unwrap().name;
-                debug!(
-                    target: "mudae_sniper",
-                    instance:? = &instance.name;
-                    "🌀 rolled card {card_name:?}",
-                );
-                let kakera_value = extract_kakera_value(&card);
-                if captured && has_rt {
-                    if kakera_value >= SETTINGS.sniper.rt_capture_threshold {
-                        let mut sniper = sniper_mutex.lock().await;
-                        if !SETTINGS.sniper.roll_after_claim
-                            && sniper.capture_card(&msg).await.is_ok()
-                        {
-                            info!(target: "mudae_sniper",
-				  instance:? = sniper.instance_ref().name; "🃏 Card captured by rt: {card_name:?}");
-                            break;
-                        }
-                    }
-                } else if kakera_value >= SETTINGS.sniper.capture_threshold {
-                    let mut sniper = sniper_mutex.lock().await;
-                    if sniper.capture_card(&msg).await.is_ok() {
-                        info!(target: "mudae_sniper",
-			      instance:? = sniper.instance_ref().name; "🃏 Card captured: {card_name:?}");
-                        captured = true;
-                        if !SETTINGS.sniper.roll_after_claim {
-                            break;
-                        }
-                    }
-                }
-            }
         }
-        let mut sniper = sniper_mutex.lock().await;
-        sniper
-            .update_statistics()
-            .await
-            .expect("Failed on update statistics. Check the logs for details");
+
+        let now = get_local_time();
+        let wait_duration = (statistics.next_rolls - now)
+            .to_std()
+            .unwrap_or(TimeDuration::ZERO);
+
+        debug!(
+            target: "mudae_sniper",
+            instance:? = &instance.name;
+            "⏳ waiting {} until next_rolls",
+            fmt_duration_from_now(statistics.next_rolls, now)
+        );
+        {
+            let mut sniper = sniper_mutex.lock().await;
+            sniper.update_statistics().await.expect(
+                "Failed on update statistics. Check the logs for details",
+            );
+        }
+        sleep(wait_duration).await;
     }
 }

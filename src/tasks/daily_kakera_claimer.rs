@@ -16,7 +16,7 @@ use crate::{
     },
     entities::instance::Instance,
     snipers::Sniper,
-    utils::{REGEX_GET_NUMBERS, get_local_time},
+    utils::{REGEX_GET_NUMBERS, fmt_duration_from_now, get_local_time},
 };
 
 pub async fn daily_kakera_claimer_task(
@@ -40,32 +40,33 @@ pub async fn daily_kakera_claimer_task(
         next_dk = sniper.statistics_ref().next_dk;
         running = sniper.running;
     }
-
     const CHECK_INTERVAL: TimeDuration = TimeDuration::from_secs(60);
-
     loop {
         while !running {
+            debug!(
+                target: "mudae_sniper",
+                instance:? = &instance.name;
+                "🕙 task daily_kakera_claimer: instance is stopped, trying task again after {CHECK_INTERVAL:?}"
+            );
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
             next_dk = sniper.statistics_ref().next_dk;
             running = sniper.running;
         }
-
-        let wait_duration = (next_dk - get_local_time())
-            .to_std()
-            .unwrap_or(TimeDuration::ZERO);
+        let now = get_local_time();
+        let wait_duration =
+            (next_dk - now).to_std().unwrap_or(TimeDuration::ZERO);
         debug!(
             target: "mudae_sniper",
-            instance:?  = &instance.name;
-            "🕙 waiting {wait_duration:?} for next daily kakera claim..."
+            instance:? = &instance.name;
+            "⏳ waiting {} until next daily kakera claim",
+            fmt_duration_from_now(next_dk, now)
         );
         sleep(wait_duration).await;
-
         let http = {
             let sniper = sniper_mutex.lock().await;
             sniper.http.clone()
         };
-
         let (tx, rx) = oneshot::channel();
         let collector = COMMAND_SCHEDULER
             .default_message_collector(&shard, instance.channel_id)
@@ -80,16 +81,16 @@ pub async fn daily_kakera_claimer_task(
                 result_tx: tx,
             })
             .unwrap();
-
         if let Some(CommandFeedback::Msg(msg)) = rx.await.unwrap() {
             let claimed_kakera = REGEX_GET_NUMBERS
                 .find_iter(&msg.content)
                 .next()
                 .and_then(|m| parse_num(m.as_str()));
             info!(
-		target: "mudae_sniper",
-		instance:? = &instance.name;
-		"✨ claimed kakera: {}", claimed_kakera.unwrap());
+                target: "mudae_sniper",
+                instance:? = &instance.name;
+                "✨ claimed kakera: {}", claimed_kakera.unwrap()
+            );
             let mut sniper = sniper_mutex.lock().await;
             sniper.update_statistics().await.expect(
                 "Failed on update statistics. Check the logs for details",

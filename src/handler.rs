@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use log::info;
+use log::{error, info};
 use serenity_self::{
     all::{ChannelId, Context, EventHandler, Message},
     async_trait,
@@ -14,9 +14,12 @@ use crate::{
     },
     entities::instance::Instance,
     settings::SETTINGS,
-    snipers::{SNIPERS, Sniper},
+    snipers::{SNIPERS, Sniper, errors::CaptureError},
     tasks,
-    utils::{InvalidStatisticsData, extract_badges, extract_statistics},
+    utils::{
+        InvalidStatisticsData, extract_badges, extract_kakera_value,
+        extract_statistics, get_local_time,
+    },
 };
 
 pub struct Handler {}
@@ -29,6 +32,7 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
         let instance = Instance {
             channel_id: instance_cfg.id.into(),
             name: instance_cfg.name.clone(),
+            roll_after_claim: instance_cfg.roll_after_claim,
         };
         let index = i + 1;
         let channel_id: ChannelId = instance_cfg.id.into();
@@ -72,13 +76,12 @@ async fn setup_snipers(ctx: &Context) -> Result<(), InvalidStatisticsData> {
                     &msg.embeds[0].description.clone().unwrap(),
                 );
                 sniper = Arc::new(Mutex::new(Sniper::new(
-                    channel_id,
                     SETTINGS.sniper.guild_id.into(),
                     Arc::clone(&ctx.http),
                     ctx.shard.clone(),
                     statistics,
                     badges,
-                    instance_cfg.name.clone(),
+                    instance,
                 )));
                 SNIPERS.insert(channel_id, Arc::clone(&sniper));
                 info!(
@@ -114,21 +117,56 @@ impl EventHandler for Handler {
             && msg.content.as_str() == "!start"
         {
             info!(
-		target: "mudae_sniper",
-		"Start command detected, setting up snipers...");
+                target: "mudae_sniper",
+                "Start command detected, setting up snipers...");
             msg.delete(&ctx.http).await.unwrap();
             setup_snipers(&ctx).await.expect("error on setup snipers");
         };
-        let chan_id: u64 = msg.channel_id.into();
 
-        if !SETTINGS.sniper.instances.iter().any(|c| c.id == chan_id)
-            || msg.author.id != 432610292342587392
+        if msg.author.id != 432610292342587392
+            || msg.embeds.is_empty()
+            || msg.embeds[0].description.is_none()
+            || msg.components.is_empty()
         {
             return;
         }
-        if let Some(sniper) = SNIPERS.get(&msg.channel_id) {
-            let mut sniper = sniper.lock().await;
+
+        let Some(sniper) = SNIPERS.get(&msg.channel_id) else {
+            return;
+        };
+
+        let mut sniper = sniper.lock().await;
+        let stats = sniper.statistics_copy();
+        let instance = sniper.instance_copy();
+        let now = get_local_time();
+        if stats.next_kakera_react <= now {
             sniper.snipe_kakeras(&msg).await;
+        }
+        let Some(kakera_value) = extract_kakera_value(&msg.embeds[0]) else {
+            return;
+        };
+
+        if kakera_value >= SETTINGS.sniper.capture_threshold
+            && stats.can_claim
+            && let Err(error) = sniper.capture_card(&msg).await
+        {
+            match error {
+                CaptureError::InvalidButton(button) => {
+                    error!(target: "mudae_sniper::capture",
+			   "🚨 [{}] invalid claim button: {:?}",
+			   instance.name, button);
+                }
+                CaptureError::NotAButton(component) => {
+                    error!(target: "mudae_sniper::capture",
+			   "🚨 [{}] component is not a button: {:?}",
+			   instance.name, component);
+                }
+                CaptureError::MissingComponent => {
+                    error!(target: "mudae_sniper::capture",
+			   "🚨 [{}] missing component while trying to capture card",
+			   instance.name);
+                }
+            }
         }
     }
 }

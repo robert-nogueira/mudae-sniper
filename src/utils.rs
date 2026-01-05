@@ -3,6 +3,7 @@ use std::sync::LazyLock;
 use chrono::{DateTime, Duration, Utc};
 use chrono_tz::Tz;
 use regex::Regex;
+use serenity_self::all::Embed;
 
 use crate::{
     entities::{
@@ -55,17 +56,44 @@ pub fn extract_badges(text: &str) -> Vec<Badge> {
     badges
 }
 
+pub fn fmt_duration_from_now(
+    target: chrono::DateTime<Tz>,
+    now: chrono::DateTime<Tz>,
+) -> String {
+    let dur = target - now;
+    let total_secs = dur.num_seconds().max(0);
+    let hours = total_secs / 3600;
+    let minutes = (total_secs % 3600) / 60;
+    let seconds = total_secs % 60;
+    format!("{}h {}m {}s", hours, minutes, seconds)
+}
+
 pub fn extract_statistics(
     text: &str,
 ) -> Result<Statistics, InvalidStatisticsData> {
     if !(11..13).contains(&text.lines().count()) {
         return Err(InvalidStatisticsData("invalid statistics input format"));
     };
-    fn arr_to_duration(arr: &[u32; 2]) -> Duration {
+
+    let can_claim_phrases = [
+        "você __pode__ se casar agora mesmo",
+        "you __can__ claim right now",
+        "vous __pouvez__ vous marier dès maintenant",
+        "__puedes__ reclamar ahora mismo",
+    ];
+
+    let can_claim = can_claim_phrases.iter().any(|p| text.contains(p));
+
+    fn arr_to_duration(arr: &[u32; 2]) -> chrono::Duration {
         if arr[0] == 0 && arr[1] == 0 {
-            return Duration::seconds(0);
+            Duration::seconds(0)
+        } else if arr[0] == 0 && arr[1] != 0 {
+            Duration::hours(arr[1] as i64)
+        } else if arr[1] == 0 && arr[0] != 0 {
+            Duration::minutes(arr[0] as i64)
+        } else {
+            Duration::hours(arr[0] as i64) + Duration::minutes(arr[1] as i64)
         }
-        Duration::hours(arr[1] as i64) + Duration::minutes(arr[0] as i64)
     }
 
     let mut values: [[u32; 2]; 12] = [([0, 0]); 12];
@@ -91,14 +119,16 @@ pub fn extract_statistics(
     let kakera_stock = values[7][0];
     let next_daily = now + arr_to_duration(&values[8]);
     let next_dk = now + arr_to_duration(&values[9]);
-    let next_rt = if !values[10].is_empty() {
-        Some(now + arr_to_duration(&values[10]))
+    let next_rt = if values[10][0] != 0 || values[10][1] != 0 {
+        let rt = now + arr_to_duration(&values[10]);
+        Some(rt)
     } else {
         None
     };
     let rolls_reset_stock = values[11][0] as u16;
 
     Ok(Statistics {
+        can_claim,
         claim_time,
         rolls_remaining,
         next_rolls,
@@ -112,6 +142,18 @@ pub fn extract_statistics(
         next_dk,
         rolls_reset_stock,
     })
+}
+
+pub fn extract_kakera_value(embed: &Embed) -> Option<u32> {
+    let desc = embed
+        .description
+        .clone()
+        .expect("no description to extract kakera value");
+    let last_line = desc.split("\n").last().expect("invalid card description");
+    let value_str = REGEX_GET_NUMBERS
+        .find(last_line)
+        .expect("kakera value not find in description");
+    value_str.as_str().parse::<u32>().ok()
 }
 
 #[cfg(test)]
@@ -174,7 +216,7 @@ Vous avez **35** rolls reset en stock.";
     #[test]
     fn test_get_status_es() {
         let text =
-				  "**allma_**, __puedes__ reclamar ahora mismo. El siguiente reclamo será en **1h 28** min.
+	    "**allma_**, __puedes__ reclamar ahora mismo. El siguiente reclamo será en **1h 28** min.
 Tienes **17** rolls restantes.
 El siguiente reinicio será en **28** min.
 ¡__Puedes__ reaccionar a kakera en este momento!

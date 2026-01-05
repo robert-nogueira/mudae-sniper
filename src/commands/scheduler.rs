@@ -85,27 +85,45 @@ impl CommandScheduler {
             .expect("fail on send {command:?}");
         match ctx.collector {
             CollectorType::Msg(collector) => {
+                debug!(target: "mudae_sniper",
+                       instance:? = ctx.target_instance.name;
+                       "📝 waiting for message feedback...");
                 let feedback = collector.next().await;
                 match feedback {
                     Some(f) => {
+                        debug!(target: "mudae_sniper",
+                               instance:? = ctx.target_instance.name;
+			       "✅ message feedback received: {:?}", f.link());
                         let _ = ctx
                             .result_tx
                             .send(Some(CommandFeedback::Msg(Box::new(f))));
                     }
                     None => {
+                        debug!(target: "mudae_sniper",
+                               instance:? = ctx.target_instance.name;
+                               "⚠ no message feedback received");
                         let _ = ctx.result_tx.send(None);
                     }
                 };
             }
             CollectorType::React(collector) => {
+                debug!(target: "mudae_sniper",
+                       instance:? = ctx.target_instance.name;
+		       "📝 waiting for reaction feedback...");
                 let feedback = collector.next().await;
                 match feedback {
                     Some(_) => {
+                        debug!(target: "mudae_sniper",
+                               instance:? = ctx.target_instance.name;
+                               "✅ reaction feedback received");
                         let _ = ctx
                             .result_tx
                             .send(Some(CommandFeedback::React(())));
                     }
                     None => {
+                        debug!(target: "mudae_sniper",
+                               instance:? = ctx.target_instance.name;
+                               "⚠ no reaction feedback received");
                         let _ = ctx.result_tx.send(None);
                     }
                 };

@@ -30,6 +30,7 @@ pub enum BadgeType {
     Sapphire,
     Ruby,
     Emerald,
+    Diamond,
 }
 
 pub struct Badge {
@@ -46,6 +47,7 @@ impl BadgeType {
             "sapphire" => Some(Self::Sapphire),
             "ruby" => Some(Self::Ruby),
             "emerald" => Some(Self::Emerald),
+            "diamond" => Some(Self::Diamond),
             _ => None,
         }
     }

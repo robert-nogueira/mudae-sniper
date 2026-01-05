@@ -44,13 +44,12 @@ pub struct Sniper {
 
 impl Sniper {
     pub fn new(
-        channel_id: ChannelId,
         guild_id: GuildId,
         http: Arc<Http>,
         shard: ShardMessenger,
         statistics: Statistics,
         badges: Vec<Badge>,
-        instance_name: String,
+        instance: Instance,
     ) -> Sniper {
         Sniper {
             guild_id,
@@ -59,10 +58,7 @@ impl Sniper {
             shard,
             statistics,
             badges,
-            instance: Instance {
-                channel_id,
-                name: instance_name,
-            },
+            instance,
         }
     }
 
@@ -115,7 +111,8 @@ impl Sniper {
             oneshot::Receiver<Option<CommandFeedback>>,
         ) = oneshot::channel();
         let collector = COMMAND_SCHEDULER
-            .default_message_collector(&self.shard, self.instance.channel_id);
+            .default_message_collector(&self.shard, self.instance.channel_id)
+            .filter(|msg| extract_statistics(&msg.content).is_ok());
         COMMAND_SCHEDULER
             .sender()
             .send(CommandContext {
@@ -134,11 +131,11 @@ impl Sniper {
                 }
                 Err(message) => {
                     error!(
-                    target: "mudae_sniper",
-                    message:? = message;
-                    "Error on update statistics due to a error on extract statistics from message\n!
-                    please verify the error and fix"
-                    );
+			target: "mudae_sniper",
+			message:? = message;
+			"Error on update statistics due to a error on extract
+                    statistics from message\n!
+                    please verify the error and fix");
                     return Err(UpdateStatisticsError::InvalidStatistics(
                         message,
                     ));

@@ -15,4 +15,5 @@ pub struct Statistics {
     pub next_rt: Option<DateTime<Tz>>,
     pub next_dk: DateTime<Tz>,
     pub rolls_reset_stock: u16,
+    pub can_claim: bool,
 }

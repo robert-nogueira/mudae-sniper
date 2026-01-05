@@ -15,7 +15,7 @@ use crate::{
         CommandType,
     },
     snipers::Sniper,
-    utils::get_local_time,
+    utils::{fmt_duration_from_now, get_local_time},
 };
 
 pub async fn daily_claimer_task(
@@ -36,31 +36,33 @@ pub async fn daily_claimer_task(
         next_daily = sniper.statistics_ref().next_daily;
         running = sniper.running;
     }
-
     const CHECK_INTERVAL: TimeDuration = TimeDuration::from_secs(60);
-
     loop {
         while !running {
+            debug!(
+                target: "mudae_sniper",
+                instance:? = &instance.name;
+                "🕙 task daily_claimer: instance is stopped, trying task again after {CHECK_INTERVAL:?}"
+            );
             sleep(CHECK_INTERVAL).await;
             let sniper = sniper_mutex.lock().await;
             next_daily = sniper.statistics_ref().next_daily;
             running = sniper.running;
         }
-
-        let wait_duration = (next_daily - get_local_time())
-            .to_std()
-            .unwrap_or(TimeDuration::ZERO);
+        let now = get_local_time();
+        let wait_duration =
+            (next_daily - now).to_std().unwrap_or(TimeDuration::ZERO);
         debug!(
             target: "mudae_sniper",
-            instance:?  = &instance.name;
-            "🕙 waiting {wait_duration:?} for next daily claim..."
+            instance:? = &instance.name;
+            "⏳ waiting {} until next daily claim",
+            fmt_duration_from_now(next_daily, now)
         );
         sleep(wait_duration).await;
         let http = {
             let sniper = sniper_mutex.lock().await;
             sniper.http.clone()
         };
-
         let (tx, rx) = oneshot::channel();
         let collector = COMMAND_SCHEDULER
             .default_reaction_collector(&shard, instance.channel_id)
@@ -78,12 +80,11 @@ pub async fn daily_claimer_task(
                 result_tx: tx,
             })
             .unwrap();
-
         if let Some(CommandFeedback::React(_)) = rx.await.unwrap() {
             info!(
-            target: "mudae_sniper",
-            instance:? = &instance.name;
-            "☀️ daily claimed!"
+                target: "mudae_sniper",
+                instance:? = &instance.name;
+                "☀️ daily claimed!"
             );
             let mut sniper = sniper_mutex.lock().await;
             sniper.update_statistics().await.expect(
